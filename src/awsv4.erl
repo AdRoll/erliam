@@ -114,8 +114,8 @@ headers(#credentials{secret_access_key = SecretAccessKey,
 
 -spec isonow(calendar:datetime()) -> aws_datetime().
 isonow({{Year, Month, Day}, {Hour, Min, Sec}}) ->
-    io_lib:format("~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
-                  [Year, Month, Day, Hour, Min, Sec]).
+    lists:flatten(io_lib:format("~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
+                                [Year, Month, Day, Hour, Min, Sec])).
 isonow() ->
     isonow(calendar:universal_time()).
 
