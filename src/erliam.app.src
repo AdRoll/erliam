@@ -1,0 +1,12 @@
+{application, erliam,
+ [{description, "AWSv4 signature and IAM credential support"},
+  {vsn, "git"},
+  {registered, []},
+  {mod, {erliam_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    crypto]},
+  {modules, []},
+  {env,[]}
+ ]}.
