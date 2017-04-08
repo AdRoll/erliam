@@ -17,7 +17,7 @@
 -type credentials() :: #credentials{}.
 -export_type([credentials/0]).
 
--type pairs() :: #{iodata() => iodata()} | [{iodata(), iodata()}].
+-type pairs() :: #{string() => iodata()} | [{string(), iodata()}].
 
 
 %%%% API
