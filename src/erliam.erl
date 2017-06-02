@@ -1,9 +1,14 @@
 %%% @copyright (C) 2017, AdRoll
 %%% @doc
 %%%
+%%%    Supports interaction with AWS IAM:
+%%%
+%%%      - awsv4 signature computation (awsv4.erl)
+%%%      - instance metadata (imds.erl)
+%%%      - credential caching and storing in ets (erliam_srv.erl)
+%%%
 %%% @end
 %%% Created :  7 Apr 2017 by Mike Watters <mike.watters@adroll.com>
-
 -module(erliam).
 
 
