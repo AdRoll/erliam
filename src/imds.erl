@@ -19,12 +19,7 @@
 -include("erliam.hrl").
 
 -define(IMDS_HOST, erliam_config:g(imds_host, "169.254.169.254")).
--define(IMDS_URL, "http://" ++ ?IMDS_HOST ++ "/latest/meta-data/").
--define(INSTANCE_ID_URL, ?IMDS_URL ++ "instance-id").
--define(INSTANCE_HOSTNAME_URL, ?IMDS_URL ++ "public-hostname").
--define(AZ_URL, ?IMDS_URL ++ "placement/availability-zone").
--define(IAM_URL, ?IMDS_URL ++ "iam/").
--define(IAM_ROLES_URL, ?IAM_URL ++ "security-credentials/").
+-define(IMDS_VERSION, erliam_config:g(imds_version, "latest")).
 -define(IMDS_TIMEOUT, 30000).
 -define(IMDS_RETRIES, 3).
 
@@ -33,32 +28,30 @@
 
 -spec role_name() -> {error, term()} | {ok, string()}.
 role_name() ->
-    imds_text_response(?IAM_ROLES_URL).
+    imds_text("iam/security-credentials/").
 
 -spec zone() -> {error, term()} | {ok, string()}.
 zone() ->
-    imds_text_response(?AZ_URL).
+    imds_text("placement/availability-zone").
 
 -spec instance_id() -> {error, term()} | {ok, string()}.
 instance_id() ->
-    imds_text_response(?INSTANCE_ID_URL).
+    imds_text("instance-id").
 
 -spec public_hostname() -> {error, term()} | {ok, string()}.
 public_hostname() ->
-    imds_text_response(?INSTANCE_HOSTNAME_URL).
+    imds_text("public-hostname").
 
 
 %% Obtain a session token from the instance metadata server, returning an
 %% awsv4:credentials().
--spec get_session_token() -> {error, term()} | list(proplists:property()).
+-spec get_session_token() -> {error, term()} | awsv4:credentials().
 get_session_token() ->
     case role_name() of
         {ok, RoleName} ->
-            %% fixme; urlencode the role name.
-            TokenUrl = ?IAM_ROLES_URL ++ RoleName,
-            Result = imds_token_response(TokenUrl),
+            Result = imds_tokens(["iam/security-credentials/", http_uri:encode(RoleName)]),
             lists:foldl(fun ({Name, N}, Acc) ->
-                                setelement(N, Acc, proplists:get_value(Name, Result))
+                                setelement(N, Acc, getkey(Name, Result))
                         end,
                         #credentials{},
                         [{expiration, #credentials.expiration},
@@ -141,7 +134,7 @@ imds_text_response(Url) ->
 
 %% Fetch the given Url and return the response as a proplist of tokens.
 -spec imds_token_response(string()) ->
-    list(proplists:property()) | {error, term()}.
+    list({atom(), string()}) | {error, term()}.
 imds_token_response(Url) ->
     MimeTypes = ["text/plain", "application/json"],
     imds_transform_response(Url, MimeTypes,
@@ -157,14 +150,14 @@ metadata_response_to_token_proplist(Body) ->
                {<<"Token">>, token}],
     case jiffy:decode(Body) of
         {Plist} ->
-            case proplists:get_value(<<"Code">>, Plist) of
+            case getkey(<<"Code">>, Plist) of
                 <<"Success">> ->
                     lists:foldl(fun ({Element, Value}, Acc) ->
-                                        case lists:keyfind(Element, 1, Targets) of
-                                            {_, AtomName} ->
-                                                [{AtomName, binary_to_list(Value)} | Acc];
-                                            _ ->
-                                                Acc
+                                        case getkey(Element, Targets) of
+                                            undefined ->
+                                                Acc;
+                                            AtomName ->
+                                                [{AtomName, binary_to_list(Value)} | Acc]
                                         end
                                 end,
                                 [],
@@ -182,31 +175,25 @@ metadata_response_to_token_proplist(Body) ->
 -spec mime_type(list()) -> string().
 mime_type(Headers) ->
     case find_header("content-type", Headers) of
-        {ok, MimeType} ->
+        undefined ->
+            "text/plain";
+        MimeType ->
             [BaseType|_] = string:tokens(MimeType, ";"),
-            string:strip(BaseType);
-        _ ->
-            "text/plain"
+            string:strip(BaseType)
     end.
 
 
 %% Return the named HTTP response header from the given proplist of headers
 %% (case-insensitive).
--spec find_header(string(), list(proplists:property())) -> undefined | {ok, string()}.
+-spec find_header(string(), list({string(), string()})) -> undefined | string().
 find_header(Name, Headers) ->
-    case lists:keyfind(string:to_lower(Name), 1, [{string:to_lower(HeaderName), HeaderValue}
-                                                  || {HeaderName, HeaderValue} <- Headers]) of
-        {_, Value} ->
-            {ok, Value};
-        _ ->
-            undefined
-    end.
-
+    getkey(string:to_lower(Name), [{string:to_lower(HeaderName), HeaderValue}
+                                   || {HeaderName, HeaderValue} <- Headers]).
 
 
 %% Call the given M:F with Args, emitting an error with the given ErrorFormat (with the
 %% error as the single format argument) and retrying otherwise.  Does not catch exits.
--spec call_with_retry(module(), function(), list(), string(), integer()) ->
+-spec call_with_retry(atom(), atom(), list(), string(), integer()) ->
     {ok, term()} | {error, term()}.
 call_with_retry(Module, Fun, Args, ErrorFormat, Retries) when Retries > 0 ->
     case apply(Module, Fun, Args) of
@@ -220,6 +207,26 @@ call_with_retry(_, _, _, _, _) ->
     {error, retries_exceeded}.
 
 
+imds_url(Suffix) ->
+    lists:flatten(["http://", ?IMDS_HOST, "/", ?IMDS_VERSION, "/meta-data/", Suffix]).
+
+
+imds_text(Suffix) ->
+    imds_text_response(imds_url(Suffix)).
+
+
+imds_tokens(Suffix) ->
+    imds_token_response(imds_url(Suffix)).
+
+
+getkey(Key, Plist) ->
+    case lists:keyfind(Key, 1, Plist) of
+        false ->
+            undefined;
+        {Key, Value} ->
+            Value
+    end.
+
 
 %%%% UNIT TESTS
 -ifdef(TEST).
@@ -229,8 +236,8 @@ find_header_test() ->
     Headers = [{"Content-Type","text/plain; charset=utf-8"},
                {"Content-Length","15"},
                {"Date","Fri, 17 Oct 2014 21:41:13 GMT"}],
-    ?assertMatch({ok, "15"}, find_header("content-length", Headers)),
-    ?assertMatch({ok, "text/plain; charset=utf-8"}, find_header("Content-Type", Headers)),
+    ?assertEqual("15", find_header("content-length", Headers)),
+    ?assertEqual("text/plain; charset=utf-8", find_header("Content-Type", Headers)),
     ?assertEqual(undefined, find_header("X-YZZY", Headers)),
     ok.
 
@@ -250,8 +257,8 @@ metadata_response_to_proplist_test() ->
                 {access_key_id, "XYZZY"},
                 {secret_access_key, "FLOOBLE"},
                 {token, "BAZZLE"}],
-    [?assertEqual(proplists:get_value(Key, Expected),
-                  proplists:get_value(Key, Result))
+    [?assertEqual(getkey(Key, Expected),
+                  getkey(Key, Result))
      || Key <- [expiration, access_key_id, secret_access_key, token]],
     ok.
 
