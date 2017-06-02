@@ -9,6 +9,8 @@
 
 -export([headers/2, headers/3, headers/11,
          canonical_query/1,
+         long_term_credentials/2,
+         credentials_from_plist/1,
          isonow/0, isonow/1]).
 
 
@@ -128,6 +130,25 @@ canonical_query(QueryParams) when is_list(QueryParams) ->
                  V /= undefined]);
 canonical_query(QueryParams) when is_map(QueryParams) ->
     canonical_query(maps:to_list(QueryParams)).
+
+
+-spec long_term_credentials(iodata(), iodata()) -> credentials().
+long_term_credentials(AccessKeyId, SecretAccessKey) ->
+    #credentials{access_key_id = AccessKeyId,
+                 secret_access_key = SecretAccessKey}.
+
+
+-spec credentials_from_plist(list({expiration | token | access_key_id | secret_access_key,
+                                   iodata() | undefined})) -> credentials().
+credentials_from_plist(Plist) ->
+    lists:foldl(fun ({Name, N}, Acc) ->
+                        setelement(N, Acc, erliam_util:getkey(Name, Plist))
+                end,
+                #credentials{},
+                [{expiration, #credentials.expiration},
+                 {token, #credentials.security_token},
+                 {access_key_id, #credentials.access_key_id},
+                 {secret_access_key, #credentials.secret_access_key}]).
 
 
 %%%% INTERNAL FUNCTIONS

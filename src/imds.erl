@@ -16,8 +16,6 @@
          imds_response/3,
          imds_response/4]).
 
--include("erliam.hrl").
-
 -define(IMDS_HOST, erliam_config:g(imds_host, "169.254.169.254")).
 -define(IMDS_VERSION, erliam_config:g(imds_version, "latest")).
 -define(IMDS_TIMEOUT, 30000).
@@ -50,14 +48,7 @@ get_session_token() ->
     case role_name() of
         {ok, RoleName} ->
             Result = imds_tokens(["iam/security-credentials/", http_uri:encode(RoleName)]),
-            lists:foldl(fun ({Name, N}, Acc) ->
-                                setelement(N, Acc, getkey(Name, Result))
-                        end,
-                        #credentials{},
-                        [{expiration, #credentials.expiration},
-                         {token, #credentials.security_token},
-                         {access_key_id, #credentials.access_key_id},
-                         {secret_access_key, #credentials.secret_access_key}]);
+            awsv4:credentials_from_plist(Result);
         Error ->
             Error
     end.
@@ -73,7 +64,7 @@ imds_response(Url, MimeTypes, Timeout) ->
                        [{timeout, Timeout}], [{body_format, binary}],
                        erliam:httpc_profile()) of
         {ok, {{_, 200, _}, Headers, Body}} ->
-            case lists:member(mime_type(Headers), MimeTypes) of
+            case lists:member(erliam_util:mime_type(Headers), MimeTypes) of
                 true ->
                     {ok, Body};
                 false ->
@@ -150,10 +141,10 @@ metadata_response_to_token_proplist(Body) ->
                {<<"Token">>, token}],
     case jiffy:decode(Body) of
         {Plist} ->
-            case getkey(<<"Code">>, Plist) of
+            case erliam_util:getkey(<<"Code">>, Plist) of
                 <<"Success">> ->
                     lists:foldl(fun ({Element, Value}, Acc) ->
-                                        case getkey(Element, Targets) of
+                                        case erliam_util:getkey(Element, Targets) of
                                             undefined ->
                                                 Acc;
                                             AtomName ->
@@ -168,27 +159,6 @@ metadata_response_to_token_proplist(Body) ->
         _ ->
             {error, invalid_token_json}
     end.
-
-
-%% Return the base mime type based on the given response headers, assuming text/plain if
-%% that header is missing.
--spec mime_type(list()) -> string().
-mime_type(Headers) ->
-    case find_header("content-type", Headers) of
-        undefined ->
-            "text/plain";
-        MimeType ->
-            [BaseType|_] = string:tokens(MimeType, ";"),
-            string:strip(BaseType)
-    end.
-
-
-%% Return the named HTTP response header from the given proplist of headers
-%% (case-insensitive).
--spec find_header(string(), list({string(), string()})) -> undefined | string().
-find_header(Name, Headers) ->
-    getkey(string:to_lower(Name), [{string:to_lower(HeaderName), HeaderValue}
-                                   || {HeaderName, HeaderValue} <- Headers]).
 
 
 %% Call the given M:F with Args, emitting an error with the given ErrorFormat (with the
@@ -219,36 +189,9 @@ imds_tokens(Suffix) ->
     imds_token_response(imds_url(Suffix)).
 
 
-getkey(Key, Plist) ->
-    case lists:keyfind(Key, 1, Plist) of
-        false ->
-            undefined;
-        {Key, Value} ->
-            Value
-    end.
-
-
 %%%% UNIT TESTS
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
-
-find_header_test() ->
-    Headers = [{"Content-Type","text/plain; charset=utf-8"},
-               {"Content-Length","15"},
-               {"Date","Fri, 17 Oct 2014 21:41:13 GMT"}],
-    ?assertEqual("15", find_header("content-length", Headers)),
-    ?assertEqual("text/plain; charset=utf-8", find_header("Content-Type", Headers)),
-    ?assertEqual(undefined, find_header("X-YZZY", Headers)),
-    ok.
-
-mime_type_test() ->
-    Headers = [{"Content-Type","text/plain; charset=utf-8"},
-               {"Content-Length","15"},
-               {"Date","Fri, 17 Oct 2014 21:41:13 GMT"}],
-    ?assertEqual("text/plain", mime_type(Headers)),
-    ?assertEqual("text/plain", mime_type([])),
-    ?assertEqual("text/html", mime_type([{"content-type", "text/html; foo=bar"}])),
-    ok.
 
 metadata_response_to_proplist_test() ->
     Body = <<"{\"Code\":\"Success\",\"LastUpdated\":\"2014-10-17T15:17:07-07:00\",\"Type\":\"AWS-HMAC\",\"AccessKeyId\":\"XYZZY\",\"SecretAccessKey\":\"FLOOBLE\",\"Token\":\"BAZZLE\",\"Expiration\":\"2014-10-18T09:00:30Z\"}">>,
@@ -257,8 +200,8 @@ metadata_response_to_proplist_test() ->
                 {access_key_id, "XYZZY"},
                 {secret_access_key, "FLOOBLE"},
                 {token, "BAZZLE"}],
-    [?assertEqual(getkey(Key, Expected),
-                  getkey(Key, Result))
+    [?assertEqual(erliam_util:getkey(Key, Expected),
+                  erliam_util:getkey(Key, Result))
      || Key <- [expiration, access_key_id, secret_access_key, token]],
     ok.
 
