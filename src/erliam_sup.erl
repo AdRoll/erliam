@@ -24,7 +24,12 @@ init(_) ->
                  intensity => 10,
                  period => 10},
 
-    {ok, {SupFlags, []}}.
+    CredSrv = #{id => erliam_srv,
+                type => worker,
+                shutdown => 5000,
+                start => {erliam_srv, start_link, []}},
+
+    {ok, {SupFlags, [CredSrv]}}.
 
 
 %%%% INTERNAL FUNCTIONS
