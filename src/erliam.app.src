@@ -1,7 +1,7 @@
 {application, erliam,
  [{description, "AWSv4 signature and IAM credential support"},
   {vsn, "git"},
-  {registered, []},
+  {registered, [erliam_sup, erliam_srv]},
   {mod, {erliam_app, []}},
   {applications,
    [kernel,

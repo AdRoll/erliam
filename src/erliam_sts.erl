@@ -74,5 +74,5 @@ convert_credential_plist(Plist) ->
               {'SecretAccessKey', secret_access_key},
               {'Expiration', expiration},
               {'SessionToken', token}],
-    [{erliam_util:getkey(K, KeyMap), V}
+    [{erliam_util:getkey(K, KeyMap), binary_to_list(V)}
      || {K, V} <- Plist].

@@ -72,9 +72,10 @@ code_change(_OldVsn, State, _Extra) ->
 
 maybe_update_credentials() ->
     case ets:lookup(?TAB, credentials) of
-        [#credentials{expiration = ExpTime} = Credentials] ->
+        [Credentials] ->
+            MinLifetime = ?MIN_LIFETIME,
             case remaining_lifetime(Credentials) of
-                N when N =< 120 ->
+                N when N =< MinLifetime ->
                     update_credentials();
                 _ ->
                     ok

@@ -30,9 +30,9 @@ mime_type(Headers) ->
 %% (case-insensitive).
 -spec find_header(string(), list({string(), string()})) -> undefined | string().
 find_header(Name, Headers) ->
-    erliam_util:getkey(string:to_lower(Name),
-                       [{string:to_lower(HeaderName), HeaderValue}
-                        || {HeaderName, HeaderValue} <- Headers]).
+    getkey(string:to_lower(Name),
+           [{string:to_lower(HeaderName), HeaderValue}
+            || {HeaderName, HeaderValue} <- Headers]).
 
 
 getkey(Key, Plist) ->

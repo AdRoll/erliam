@@ -28,7 +28,7 @@ session token periodically.
                           #{service => "s3",
                             region => "us-west-2",
                             host => "bucketname.s3.amazonaws.com",
-                            path => "/"
+                            path => "/",
                             query_params => QueryParams}).
 > httpc:request(get, {lists:flatten("https://bucketname.s3.amazonaws.com/?" ++
                                     awsv4:canonical_query(QueryParams)), Headers}, [], []).
