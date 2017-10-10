@@ -18,6 +18,8 @@ session token periodically.
 
 ## example
 
+### Fetch an object from S3
+
 ```
 > application:start(erliam).
 > QueryParams = #{"prefix" => "some/prefix/",
@@ -42,4 +44,34 @@ session token periodically.
   {"x-amz-request-id", "SOME-OTHER-ID"},
   {"x-amz-bucket-region", "us-west-2"}],
  "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ListBucketResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Name>bucketname</Name>..."}}
+```
+
+### Encrypt plaintext using KMS
+
+```
+> application:start(erliam).
+> QueryParams = #{}.
+> KeyId = <<"xxxx-xxxx-xxxx-xxxx-xxxxxxxxxx">>
+> RequestBody = jiffy:encode(#{<<"EncryptionContext">> => #{<<"application">> => <<"thing encryptor">>},
+                               <<"KeyId">> => KeyId,
+                               <<"Plaintext">> => base64:encode(<<"setec astronomy">>)}).
+> SignedHeaders = #{"content-type" => "application/x-amz-json-1.1",
+                    "x-amz-target" => "TrentService.Encrypt"}.
+> Headers = awsv4:headers(erliam:credentials(),
+                          #{service => "kms",
+                            method => "POST",
+                            region => "us-east-1",
+                            query_params => QueryParams,
+                            signed_headers => SignedHeaders},
+                          RequestBody).
+> httpc:request(post, {lists:flatten(["https://kms.us-east-1.amazonaws.com", "/?",
+                                      awsv4:canonical_query(QueryParams)]),
+                       Headers,
+                       proplists:get_value("content-type", Headers), RequestBody}, [], []).
+
+{ok, {{"HTTP/1.1", 200, "OK"},
+     [{"content-length", "307"},
+      {"content-type", "application/x-amz-json-1.1"},
+      {"x-amzn-requestid", "xxxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx"}],
+     "{\"CiphertextBlob\":\"B64ENCODED CIPHERTEXT\",\"KeyId\":\"KEY ARN\"}"}}
 ```
