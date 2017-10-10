@@ -55,10 +55,10 @@ session token periodically.
 > RequestBody = jiffy:encode(#{<<"EncryptionContext">> => #{<<"application">> => <<"thing encryptor">>},
                                <<"KeyId">> => KeyId,
                                <<"Plaintext">> => base64:encode(<<"setec astronomy">>)}).
-> SignedHeaders = #{"content-type" => "application/x-amz-json-1.1",
-                    "x-amz-target" => "TrentService.Encrypt"}.
+> SignedHeaders = #{"content-type" => "application/x-amz-json-1.1"}.
 > Headers = awsv4:headers(erliam:credentials(),
                           #{service => "kms",
+                            target_api => "TrentService.Encrypt",
                             method => "POST",
                             region => "us-east-1",
                             query_params => QueryParams,
