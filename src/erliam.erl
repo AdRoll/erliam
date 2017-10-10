@@ -14,7 +14,8 @@
 
 -export([httpc_profile/0,
          get_session_token/0,
-         credentials/0]).
+         credentials/0,
+         invalidate/0]).
 
 
 %% Return the current cached credentials (crash if none are cached or credential refresher
@@ -39,3 +40,8 @@ get_session_token() ->
 
 httpc_profile() ->
     erliam_config:g(httpc_profile, erliam).
+
+
+%% force cached credentials to be invalidated and refreshed.
+invalidate() ->
+    erliam_srv:invalidate().

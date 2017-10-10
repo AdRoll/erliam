@@ -13,7 +13,8 @@
 
 %% API
 -export([start_link/0,
-         current/0]).
+         current/0,
+         invalidate/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -39,6 +40,10 @@ current() ->
     Credentials.
 
 
+invalidate() ->
+    gen_server:call(?SERVER, invalidate).
+
+
 %%%% CALLBACKS
 
 init([]) ->
@@ -46,6 +51,10 @@ init([]) ->
     R = update_credentials(),
     timer:send_interval(1000, refresh),
     {R, #state{}}.
+
+handle_call(invalidate, _From, State) ->
+    update_credentials(),
+    {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
     {reply, {error, not_implemented}, State}.
