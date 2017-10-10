@@ -8,6 +8,7 @@
     stdlib,
     inets,
     crypto,
+    ssl,
     jiffy]},
   {modules, []},
   {env,[]}
