@@ -37,7 +37,7 @@ headers(Credentials, #{service := Service,
                  path => "/",
                  query_params => #{},
                  signed_headers => #{},
-                 aws_date => isonow(),
+                 aws_date => undefined,
                  host => join($., [Service, Region, "amazonaws.com"])},
     headers_(Credentials, maps:merge(Defaults, Parameters), RequestPayload).
 
@@ -45,7 +45,7 @@ headers(Credentials, #{service := Service,
                   Service :: string(), % e.g., "s3"
                    Region :: string(), % e.g., "us-west-2"
                      Host :: string(), % e.g., "bucketname.s3.amazonaws.com"
-                  AwsDate :: aws_datetime(), % e.g., "20170101T000000Z"
+                  AwsDate :: undefined | aws_datetime(), % e.g., "20170101T000000Z"
                 TargetAPI :: string() | undefined, % e.g., "DynamoDB_20120810.CreateTable"
                    Method :: string(), % e.g., "GET", "POST"
                      Path :: string(),
@@ -60,7 +60,11 @@ headers(#credentials{secret_access_key = SecretAccessKey,
         Method, Path, QueryParams, ExtraSignedHeaders,
         RequestPayload) ->
 
-    Date = lists:sublist(AwsDate, 8), % yyyymmdd
+    ActualAwsDate = case AwsDate of
+                        undefined -> isonow();
+                        _ -> AwsDate
+                    end,
+    Date = lists:sublist(ActualAwsDate, 8), % yyyymmdd
     Scope = [Date, Region, Service, "aws4_request"],
 
     Hash = sha256,
@@ -73,7 +77,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
 
     Headers = lists:keysort(1, [{string:to_lower(K), V}
                                 || {K, V} <- [{"host", Host},
-                                              {"x-amz-date", AwsDate},
+                                              {"x-amz-date", ActualAwsDate},
                                               {"x-amz-security-token", SecurityToken},
                                               {"x-amz-target", TargetAPI}]
                                        ++ if
@@ -99,7 +103,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
     CredentialScope = join($/, Scope),
 
     StringToSign = join($\n, [Algorithm,
-                              AwsDate,
+                              ActualAwsDate,
                               CredentialScope,
                               hexlify(crypto:hash(Hash, CanonicalRequest))]),
 
