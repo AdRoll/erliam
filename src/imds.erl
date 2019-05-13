@@ -139,20 +139,27 @@ metadata_response_to_token_proplist(Body) ->
                {<<"AccessKeyId">>, access_key_id},
                {<<"SecretAccessKey">>, secret_access_key},
                {<<"Token">>, token}],
+    case get_code(Body) of
+        {success, Plist} ->
+            lists:foldl(
+                fun({Element, Value}, Acc) ->
+                    case erliam_util:getkey(Element, Targets) of
+                        undefined ->
+                            Acc;
+                        AtomName ->
+                            [{AtomName, binary_to_list(Value)} | Acc]
+                    end
+                end, [], Plist);
+        Error ->
+            Error
+    end.
+
+get_code(Body) ->
     case jiffy:decode(Body) of
         {Plist} ->
             case erliam_util:getkey(<<"Code">>, Plist) of
                 <<"Success">> ->
-                    lists:foldl(fun ({Element, Value}, Acc) ->
-                                        case erliam_util:getkey(Element, Targets) of
-                                            undefined ->
-                                                Acc;
-                                            AtomName ->
-                                                [{AtomName, binary_to_list(Value)} | Acc]
-                                        end
-                                end,
-                                [],
-                                Plist);
+                    {success, Plist};
                 _ ->
                     {error, failed_token_response}
             end;
@@ -194,7 +201,11 @@ imds_tokens(Suffix) ->
 -include_lib("eunit/include/eunit.hrl").
 
 metadata_response_to_proplist_test() ->
-    Body = <<"{\"Code\":\"Success\",\"LastUpdated\":\"2014-10-17T15:17:07-07:00\",\"Type\":\"AWS-HMAC\",\"AccessKeyId\":\"XYZZY\",\"SecretAccessKey\":\"FLOOBLE\",\"Token\":\"BAZZLE\",\"Expiration\":\"2014-10-18T09:00:30Z\"}">>,
+    Body = <<
+        "{\"Code\":\"Success\",\"LastUpdated\":\"2014-10-17T15:17:07-07:00\","
+        "\"Type\":\"AWS-HMAC\",\"AccessKeyId\":\"XYZZY\",\"SecretAccessKey\":"
+        "\"FLOOBLE\",\"Token\":\"BAZZLE\",\"Expiration\":\"2014-10-18T09:00:30Z\"}"
+    >>,
     Result = metadata_response_to_token_proplist(Body),
     Expected = [{expiration, "2014-10-18T09:00:30Z"},
                 {access_key_id, "XYZZY"},

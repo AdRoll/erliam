@@ -9,4 +9,4 @@ clean:
 	@rebar3 clean -a
 
 test:
-	@rebar3 eunit
+	@rebar3 test

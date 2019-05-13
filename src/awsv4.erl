@@ -145,14 +145,12 @@ long_term_credentials(AccessKeyId, SecretAccessKey) ->
 -spec credentials_from_plist(list({expiration | token | access_key_id | secret_access_key,
                                    iodata() | undefined})) -> credentials().
 credentials_from_plist(Plist) ->
-    lists:foldl(fun ({Name, N}, Acc) ->
-                        setelement(N, Acc, erliam_util:getkey(Name, Plist))
-                end,
-                #credentials{},
-                [{expiration, #credentials.expiration},
-                 {token, #credentials.security_token},
-                 {access_key_id, #credentials.access_key_id},
-                 {secret_access_key, #credentials.secret_access_key}]).
+    #credentials{
+        expiration          = erliam_util:getkey(expiration,        Plist),
+        security_token      = erliam_util:getkey(token,             Plist),
+        access_key_id       = erliam_util:getkey(access_key_id,     Plist),
+        secret_access_key   = erliam_util:getkey(secret_access_key, Plist)
+    }.
 
 
 %%%% INTERNAL FUNCTIONS
@@ -259,75 +257,104 @@ basic_headers_test() ->
                                 "20140629T022822Z", "Kinesis_20131202.ListStreams",
                                 "POST", "/", [], #{},
                                 "something"]),
-    Expected = flattened([{"authorization",
-                           ["AWS4-HMAC-SHA256 Credential=accesskey/20140629/us-east-1/kinesis/aws4_request",
-                            ",SignedHeaders=host;x-amz-date;x-amz-security-token;x-amz-target",
-                            ",Signature=847fee48568298911772356fe332443bf2679c48fd42695a84aaa0d0e7f28c66"]},
-                          {"x-amz-content-sha256",
-                           "3fc9b689459d738f8c88a3a48aa9e33542016b7a4052e001aaa536fca74813cb"},
-                          {"host","kinesis.us-east-1.amazonaws.com"},
-                          {"x-amz-date","20140629T022822Z"},
-                          {"x-amz-security-token","securitytoken"},
-                          {"x-amz-target","Kinesis_20131202.ListStreams"}]),
+    Expected = flattened([
+        {"authorization", [
+            "AWS4-HMAC-SHA256 Credential=accesskey/20140629/us-east-1/kinesis/aws4_request",
+            ",SignedHeaders=host;x-amz-date;x-amz-security-token;x-amz-target",
+            ",Signature=847fee48568298911772356fe332443bf2679c48fd42695a84aaa0d0e7f28c66"
+        ]},
+        {"x-amz-content-sha256",
+            "3fc9b689459d738f8c88a3a48aa9e33542016b7a4052e001aaa536fca74813cb"},
+        {"host","kinesis.us-east-1.amazonaws.com"},
+        {"x-amz-date","20140629T022822Z"},
+        {"x-amz-security-token","securitytoken"},
+        {"x-amz-target","Kinesis_20131202.ListStreams"}
+    ]),
     ?assertEqual(Expected, Actual).
 
 aws4_example1_test() ->
     %% get-vanilla-query-order-key-case from aws4 test suite
-    Actual = flattened_headers([#credentials{secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
-                                             access_key_id = "AKIDEXAMPLE"},
-                                #{aws_date => "20150830T123600Z",
-                                  service => "service",
-                                  region => "us-east-1",
-                                  host => "example.amazonaws.com",
-                                  query_params => #{"Param2" => "value2",
-                                                    "Param1" => "value1"}}]),
-    Expected = flattened([{"authorization",
-                           ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request",
-                            ",SignedHeaders=host;x-amz-date",
-                            ",Signature=b97d918cfa904a5beff61c982a1b6f458b799221646efd99d3219ec94cdf2500"]},
-                          {"x-amz-content-sha256",
-                           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-                          {"host", "example.amazonaws.com"},
-                          {"x-amz-date", "20150830T123600Z"}]),
+    Actual = flattened_headers([
+        #credentials{
+            secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+            access_key_id = "AKIDEXAMPLE"
+        },
+        #{
+            aws_date => "20150830T123600Z",
+            service => "service",
+            region => "us-east-1",
+            host => "example.amazonaws.com",
+            query_params => #{"Param2" => "value2", "Param1" => "value1"}
+        }
+    ]),
+    Expected = flattened([
+        {"authorization", [
+            "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request",
+            ",SignedHeaders=host;x-amz-date",
+            ",Signature=b97d918cfa904a5beff61c982a1b6f458b799221646efd99d3219ec94cdf2500"
+        ]},
+        {"x-amz-content-sha256",
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        {"host", "example.amazonaws.com"},
+        {"x-amz-date", "20150830T123600Z"}
+    ]),
     ?assertEqual(Expected, Actual).
 
 aws4_example2_test() ->
     %% post-vanilla-query from aws4 test suite
-    Actual = flattened_headers([#credentials{secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
-                                             access_key_id = "AKIDEXAMPLE"},
-                                #{aws_date => "20150830T123600Z",
-                                  service => "service",
-                                  region => "us-east-1",
-                                  host => "example.amazonaws.com",
-                                  method => "POST",
-                                  query_params => #{"Param1" => "value1"}}]),
-    Expected = flattened([{"authorization",
-                           ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request",
-                            ",SignedHeaders=host;x-amz-date",
-                            ",Signature=28038455d6de14eafc1f9222cf5aa6f1a96197d7deb8263271d420d138af7f11"]},
-                          {"x-amz-content-sha256",
-                           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-                          {"host", "example.amazonaws.com"},
-                          {"x-amz-date", "20150830T123600Z"}]),
+    Actual = flattened_headers([
+        #credentials{
+            secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+            access_key_id = "AKIDEXAMPLE"
+        },
+        #{
+            aws_date => "20150830T123600Z",
+            service => "service",
+            region => "us-east-1",
+            host => "example.amazonaws.com",
+            method => "POST",
+            query_params => #{"Param1" => "value1"}
+        }
+    ]),
+    Expected = flattened([
+        {"authorization", [
+            "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request",
+            ",SignedHeaders=host;x-amz-date",
+            ",Signature=28038455d6de14eafc1f9222cf5aa6f1a96197d7deb8263271d420d138af7f11"
+        ]},
+        {"x-amz-content-sha256",
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        {"host", "example.amazonaws.com"},
+        {"x-amz-date", "20150830T123600Z"}
+    ]),
     ?assertEqual(Expected, Actual).
 
 aws4_example3_test() ->
     %% get-unreserved from aws4 test suite
-    Actual = flattened_headers([#credentials{secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
-                                             access_key_id = "AKIDEXAMPLE"},
-                                #{aws_date => "20150830T123600Z",
-                                  service => "service",
-                                  region => "us-east-1",
-                                  host => "example.amazonaws.com",
-                                  path => "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}]),
-    Expected = flattened([{"authorization",
-                           ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request",
-                            ",SignedHeaders=host;x-amz-date",
-                            ",Signature=07ef7494c76fa4850883e2b006601f940f8a34d404d0cfa977f52a65bbf5f24f"]},
-                          {"x-amz-content-sha256",
-                           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
-                          {"host", "example.amazonaws.com"},
-                          {"x-amz-date", "20150830T123600Z"}]),
+    Actual = flattened_headers([
+        #credentials{
+            secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+            access_key_id = "AKIDEXAMPLE"
+        },
+        #{
+            aws_date => "20150830T123600Z",
+            service => "service",
+            region => "us-east-1",
+            host => "example.amazonaws.com",
+            path => "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        }
+    ]),
+    Expected = flattened([
+        {"authorization", [
+            "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request",
+            ",SignedHeaders=host;x-amz-date",
+            ",Signature=07ef7494c76fa4850883e2b006601f940f8a34d404d0cfa977f52a65bbf5f24f"
+        ]},
+        {"x-amz-content-sha256",
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+        {"host", "example.amazonaws.com"},
+        {"x-amz-date", "20150830T123600Z"}
+    ]),
     ?assertEqual(Expected, Actual).
 
 
