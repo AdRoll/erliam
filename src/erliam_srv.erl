@@ -48,9 +48,13 @@ invalidate() ->
 
 init([]) ->
     ets:new(?TAB, [named_table, public, {read_concurrency, true}]),
-    R = update_credentials(),
-    timer:send_interval(1000, refresh),
-    {R, #state{}}.
+    case update_credentials() of
+        {error, Error} ->
+            {stop, Error};
+        ok ->
+            timer:send_interval(1000, refresh),
+            {ok, #state{}}
+    end.
 
 handle_call(invalidate, _From, State) ->
     update_credentials(),
@@ -117,7 +121,8 @@ parse_exptime([Y1,Y2,Y3,Y4, $-, Mon1,Mon2, $-, D1,D2, $T, H1,H2, $:, Min1,Min2, 
      {list_to_integer([H1,H2]),
       list_to_integer([Min1,Min2]),
       list_to_integer([S1,S2])}};
-parse_exptime([Y1,Y2,Y3,Y4, $-, Mon1,Mon2, $-, D1,D2, $T, H1,H2, $:, Min1,Min2, $:, S1,S2, $.,_,_,_, $Z]) ->
+parse_exptime(
+    [Y1,Y2,Y3,Y4, $-, Mon1,Mon2, $-, D1,D2, $T, H1,H2, $:, Min1,Min2, $:, S1,S2, $.,_,_,_, $Z]) ->
     parse_exptime([Y1,Y2,Y3,Y4, $-, Mon1,Mon2, $-, D1,D2, $T, H1,H2, $:, Min1,Min2, $:, S1,S2, $Z]).
 
 
