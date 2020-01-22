@@ -11,7 +11,9 @@
 %%% Created :  7 Apr 2017 by Mike Watters <mike.watters@adroll.com>
 -module(erliam).
 
--export([httpc_profile/0, get_session_token/0, credentials/0,
+-export([httpc_profile/0,
+         get_session_token/0,
+         credentials/0,
          invalidate/0]).
 
 %% Return the current cached credentials (crash if none are cached or credential refresher

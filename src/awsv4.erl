@@ -7,8 +7,13 @@
 %%% Created :  1 Feb 2017 by Mike Watters <mike.watters@adroll.com>
 -module(awsv4).
 
--export([headers/2, headers/3, headers/11, canonical_query/1,
-         long_term_credentials/2, credentials_from_plist/1, isonow/0,
+-export([headers/2,
+         headers/3,
+         headers/11,
+         canonical_query/1,
+         long_term_credentials/2,
+         credentials_from_plist/1,
+         isonow/0,
          isonow/1]).
 
 -include("erliam.hrl").
@@ -29,37 +34,43 @@ headers(Credentials, Parameters, undefined) ->
 headers(Credentials,
         #{service := Service, region := Region} = Parameters,
         RequestPayload) ->
-    Defaults = #{target_api => undefined, method => "GET", path => "/",
-                 query_params => #{}, signed_headers => #{},
+    Defaults = #{target_api => undefined,
+                 method => "GET",
+                 path => "/",
+                 query_params => #{},
+                 signed_headers => #{},
                  aws_date => undefined,
                  host => join($., [Service, Region, "amazonaws.com"])},
-    headers_(Credentials, maps:merge(Defaults, Parameters),
+    headers_(Credentials,
+             maps:merge(Defaults, Parameters),
              RequestPayload).
 
--spec headers(Credentials :: credentials(), Service :: string(),
-              Region :: string(), Host :: string(),
+-spec headers(Credentials :: credentials(),
+              Service :: string(),
+              Region :: string(),
+              Host :: string(),
               AwsDate :: undefined | aws_datetime(),
-              TargetAPI :: string() | undefined, Method :: string(),
-              Path :: string(), QueryParams :: pairs(),
+              TargetAPI :: string() | undefined,
+              Method :: string(),
+              Path :: string(),
+              QueryParams :: pairs(),
               ExtraSignedHeaders :: pairs(),
               RequestPayload :: binary()) -> [{HeaderName :: string(),
                                                HeaderValue :: iodata()}].
 
-                                                                          % e.g., "s3"
-
-                                       % e.g., "us-west-2"
- % e.g., "bucketname.s3.amazonaws.com"
-
-                                                         % e.g., "20170101T000000Z"
- % e.g., "DynamoDB_20120810.CreateTable"
-
-                                       % e.g., "GET", "POST"
-
 headers(#credentials{secret_access_key = SecretAccessKey,
                      access_key_id = AccessKeyId,
                      security_token = SecurityToken},
-        Service, Region, Host, AwsDate, TargetAPI, Method, Path, QueryParams,
-        ExtraSignedHeaders, RequestPayload) ->
+        Service,
+        Region,
+        Host,
+        AwsDate,
+        TargetAPI,
+        Method,
+        Path,
+        QueryParams,
+        ExtraSignedHeaders,
+        RequestPayload) ->
     ActualAwsDate = case AwsDate of
                       undefined -> isonow();
                       _ -> AwsDate
@@ -69,7 +80,8 @@ headers(#credentials{secret_access_key = SecretAccessKey,
     Hash = sha256,
     Algorithm = "AWS4-HMAC-SHA256",
     SigningKey = lists:foldl(fun (E, A) -> crypto:hmac(Hash, A, E) end,
-                             "AWS4" ++ SecretAccessKey, Scope),
+                             "AWS4" ++ SecretAccessKey,
+                             Scope),
     Headers = lists:keysort(1,
                             [{string:to_lower(K), V}
                              || {K, V}
@@ -87,22 +99,33 @@ headers(#credentials{secret_access_key = SecretAccessKey,
     CanonicalHeaders = [[K, $:, V, $\n] || {K, V} <- Headers],
     PayloadHash = hexlify(crypto:hash(Hash, RequestPayload)),
     CanonicalRequest = join($\n,
-                            [Method, canonical_path(Service, Path),
-                             canonical_query(QueryParams), CanonicalHeaders,
-                             SignedHeaders, PayloadHash]),
+                            [Method,
+                             canonical_path(Service, Path),
+                             canonical_query(QueryParams),
+                             CanonicalHeaders,
+                             SignedHeaders,
+                             PayloadHash]),
     CredentialScope = join($/, Scope),
     StringToSign = join($\n,
-                        [Algorithm, ActualAwsDate, CredentialScope,
+                        [Algorithm,
+                         ActualAwsDate,
+                         CredentialScope,
                          hexlify(crypto:hash(Hash, CanonicalRequest))]),
     Signature = hexlify(crypto:hmac(Hash, SigningKey, StringToSign)),
     [{"authorization",
-      [Algorithm, " Credential=", AccessKeyId, $/, CredentialScope,
-       ",SignedHeaders=", SignedHeaders, ",Signature=", Signature]},
+      [Algorithm,
+       " Credential=",
+       AccessKeyId,
+       $/,
+       CredentialScope,
+       ",SignedHeaders=",
+       SignedHeaders,
+       ",Signature=",
+       Signature]},
      {"x-amz-content-sha256", PayloadHash}
      | Headers].
 
 -spec isonow(calendar:datetime()) -> aws_datetime().
-
 isonow({{Year, Month, Day}, {Hour, Min, Sec}}) ->
     lists:flatten(io_lib:format("~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
                                 [Year, Month, Day, Hour, Min, Sec])).
@@ -111,7 +134,6 @@ isonow() -> isonow(calendar:universal_time()).
 
 %% fixme; handle repeated params.
 -spec canonical_query(pairs()) -> iolist().
-
 canonical_query(QueryParams) when is_list(QueryParams) ->
     join($&,
          [[quote(K), $=, quote(V)]
@@ -120,15 +142,15 @@ canonical_query(QueryParams) when is_map(QueryParams) ->
     canonical_query(maps:to_list(QueryParams)).
 
 -spec long_term_credentials(iodata(), iodata()) -> credentials().
-
 long_term_credentials(AccessKeyId, SecretAccessKey) ->
     #credentials{access_key_id = AccessKeyId,
                  secret_access_key = SecretAccessKey}.
 
--spec credentials_from_plist([{expiration | token | access_key_id |
+-spec credentials_from_plist([{expiration |
+                               token |
+                               access_key_id |
                                secret_access_key,
                                iodata() | undefined}]) -> credentials().
-
 credentials_from_plist(Plist) ->
     #credentials{expiration = erliam_util:getkey(expiration, Plist),
                  security_token = erliam_util:getkey(token, Plist),
@@ -139,13 +161,27 @@ credentials_from_plist(Plist) ->
 %%%% INTERNAL FUNCTIONS
 
 headers_(Credentials,
-         #{service := Service, region := Region, host := Host,
-           target_api := TargetAPI, aws_date := AwsDate, method := Method,
-           path := Path, query_params := QueryParams,
+         #{service := Service,
+           region := Region,
+           host := Host,
+           target_api := TargetAPI,
+           aws_date := AwsDate,
+           method := Method,
+           path := Path,
+           query_params := QueryParams,
            signed_headers := ExtraSignedHeaders},
          RequestPayload) ->
-    headers(Credentials, Service, Region, Host, AwsDate, TargetAPI,
-            Method, Path, QueryParams, ExtraSignedHeaders, RequestPayload).
+    headers(Credentials,
+            Service,
+            Region,
+            Host,
+            AwsDate,
+            TargetAPI,
+            Method,
+            Path,
+            QueryParams,
+            ExtraSignedHeaders,
+            RequestPayload).
 
 canonical_path(_Service, Path) ->
     %% note: should remove redundant and relative path components, except leave empty path
@@ -159,7 +195,9 @@ quote(X, Kind) when is_list(X) ->
     quote(unicode:characters_to_binary(X, utf8), Kind);
 quote(X, Kind) when is_binary(X) ->
     << <<case should_encode(C, Kind) of
-           true -> [A, B] = string:to_upper(int_to_hex(C)), <<"%", A, B>>;
+           true ->
+               [A, B] = string:to_upper(int_to_hex(C)),
+               <<"%", A, B>>;
            false -> <<C>>
          end/binary>>
         || <<C:8>> <= X >>.
@@ -186,7 +224,8 @@ join(Sep, List) ->
     lists:foldr(fun (E, []) -> [E];
                     (E, A) -> [E, Sep | A]
                 end,
-                [], List).
+                [],
+                List).
 
 %%%% TESTS
 
@@ -208,11 +247,16 @@ basic_headers_test() ->
                                                  "secretkey",
                                              access_key_id = "accesskey",
                                              security_token = "securitytoken"},
-                                "kinesis", "us-east-1",
+                                "kinesis",
+                                "us-east-1",
                                 "kinesis.us-east-1.amazonaws.com",
                                 "20140629T022822Z",
-                                "Kinesis_20131202.ListStreams", "POST", "/", [],
-                                #{}, "something"]),
+                                "Kinesis_20131202.ListStreams",
+                                "POST",
+                                "/",
+                                [],
+                                #{},
+                                "something"]),
     Expected = flattened([{"authorization",
                            ["AWS4-HMAC-SHA256 Credential=accesskey/20140629/us-east"
                             "-1/kinesis/aws4_request",
@@ -235,7 +279,8 @@ aws4_example1_test() ->
                                                  "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
                                              access_key_id = "AKIDEXAMPLE"},
                                 #{aws_date => "20150830T123600Z",
-                                  service => "service", region => "us-east-1",
+                                  service => "service",
+                                  region => "us-east-1",
                                   host => "example.amazonaws.com",
                                   query_params =>
                                       #{"Param2" => "value2",
@@ -259,7 +304,8 @@ aws4_example2_test() ->
                                                  "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
                                              access_key_id = "AKIDEXAMPLE"},
                                 #{aws_date => "20150830T123600Z",
-                                  service => "service", region => "us-east-1",
+                                  service => "service",
+                                  region => "us-east-1",
                                   host => "example.amazonaws.com",
                                   method => "POST",
                                   query_params => #{"Param1" => "value1"}}]),
@@ -282,7 +328,8 @@ aws4_example3_test() ->
                                                  "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
                                              access_key_id = "AKIDEXAMPLE"},
                                 #{aws_date => "20150830T123600Z",
-                                  service => "service", region => "us-east-1",
+                                  service => "service",
+                                  region => "us-east-1",
                                   host => "example.amazonaws.com",
                                   path =>
                                       "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklm"
