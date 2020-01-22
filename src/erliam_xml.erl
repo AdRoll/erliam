@@ -41,10 +41,8 @@ parse_element(X) -> X.
 
 unescape_xml_text(X) ->
     unescape_xml_text(unicode:characters_to_binary(X, utf8),
-                      [{<<"&lt;">>, <<"<">>},
-                       {<<"&gt;">>, <<">">>},
-                       {<<"&quot;">>, <<"\"">>},
-                       {<<"&apos;">>, <<"'">>},
+                      [{<<"&lt;">>, <<"<">>}, {<<"&gt;">>, <<">">>},
+                       {<<"&quot;">>, <<"\"">>}, {<<"&apos;">>, <<"'">>},
                        {<<"&amp;">>, <<"&">>}]).
 
 unescape_xml_text(X, []) -> X;

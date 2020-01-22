@@ -13,18 +13,19 @@
 %% Return the base mime type based on the given response headers, assuming text/plain if
 %% that header is missing.
 -spec mime_type(list()) -> string().
+
 mime_type(Headers) ->
     case find_header("content-type", Headers) of
       undefined -> "text/plain";
       MimeType ->
-          [BaseType | _] = string:tokens(MimeType, ";"),
-          string:strip(BaseType)
+          [BaseType | _] = string:tokens(MimeType, ";"), string:strip(BaseType)
     end.
 
 %% Return the named HTTP response header from the given proplist of headers
 %% (case-insensitive).
 -spec find_header(string(), [{string(), string()}]) -> undefined |
                                                        string().
+
 find_header(Name, Headers) ->
     getkey(string:to_lower(Name),
            [{string:to_lower(HeaderName), HeaderValue}
