@@ -55,16 +55,17 @@ unescape_xml_text(X, [{C, R} | T]) ->
 -include_lib("eunit/include/eunit.hrl").
 
 basic_decode_test() ->
-    Data = <<"<GetSessionTokenResponse xmlns=\"https://sts.amazonaws"
-             ".com/doc/2011-06-15/\">\n  <GetSessionTokenResult>\n "
-             "  <Credentials>\n    <AccessKeyId>ACCESS_KEY_ID</Acces"
-             "sKeyId>\n    <SecretAccessKey>SECRET_ACCESS_KEY</Secre"
-             "tAccessKey>\n    <SessionToken>SESSION_TOKEN</SessionT"
-             "oken>\n    <Expiration>EXPIRATION</Expiration>\n "
-             "  </Credentials>\n  </GetSessionTokenResult>\n "
-             " <ResponseMetadata>\n   <RequestId>REQUEST_ID</Request"
-             "Id>\n  </ResponseMetadata>\n </GetSessionTokenResponse"
-             ">\n">>,
+    Data = <<"<GetSessionTokenResponse ",
+             "xmlns=\"https://sts.amazonaws.com/doc/2011-06-15/\">", $\n,
+             "  <GetSessionTokenResult><Credentials>", $\n,
+             "    <AccessKeyId>ACCESS_KEY_ID</AccessKeyId>", $\n,
+             "    <SecretAccessKey>SECRET_ACCESS_KEY</SecretAccessKey>", $\n,
+             "    <SessionToken>SESSION_TOKEN</SessionToken>", $\n,
+             "    <Expiration>EXPIRATION</Expiration", $\n,
+             "  </Credentials></GetSessionTokenResult", $\n,
+             "  <ResponseMetadata>", $\n,
+             "    <RequestId>REQUEST_ID</RequestId>", $\n,
+             "  </ResponseMetadata>", $\n, "</GetSessionTokenResponse>\n">>,
     ?assertEqual({'GetSessionTokenResponse',
                   [{'GetSessionTokenResult',
                     [{'Credentials',
