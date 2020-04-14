@@ -43,21 +43,21 @@ getkey(Key, Plist) ->
 -include_lib("eunit/include/eunit.hrl").
 
 mime_type_test() ->
-    Headers = [{"Content-Type", "text/plain; charset=utf-8"},
-               {"Content-Length", "15"},
-               {"Date", "Fri, 17 Oct 2014 21:41:13 GMT"}],
-    ?assertEqual("text/plain", mime_type(Headers)),
+    ?assertEqual("text/plain", mime_type(headers())),
     ?assertEqual("text/plain", mime_type([])),
     ?assertEqual("text/html", mime_type([{"content-type", "text/html; foo=bar"}])),
     ok.
 
 find_header_test() ->
-    Headers = [{"Content-Type", "text/plain; charset=utf-8"},
-               {"Content-Length", "15"},
-               {"Date", "Fri, 17 Oct 2014 21:41:13 GMT"}],
+    Headers = headers(),
     ?assertEqual("15", find_header("content-length", Headers)),
     ?assertEqual("text/plain; charset=utf-8", find_header("Content-Type", Headers)),
     ?assertEqual(undefined, find_header("X-YZZY", Headers)),
     ok.
+
+headers() ->
+    [{"Content-Type", "text/plain; charset=utf-8"},
+     {"Content-Length", "15"},
+     {"Date", "Fri, 17 Oct 2014 21:41:13 GMT"}].
 
 -endif.
