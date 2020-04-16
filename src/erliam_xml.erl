@@ -37,9 +37,9 @@ parse_element([#xmlText{} | _] = L) ->
         of
       true ->
           unescape_xml_text(xmerl_xs:value_of(L));
-      %% if a list of elements is not solely text, discard the text elements and parse
-      %% the non-text elements:
       false ->
+          %% if a list of elements is not solely text, discard the text elements and parse
+          %% the non-text elements:
           parse_element([X || X <- L, not is_record(X, xmlText)])
     end;
 parse_element(L) when is_list(L) ->
