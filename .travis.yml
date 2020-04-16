@@ -4,7 +4,6 @@ os:
   - linux
 
 otp_release:
-   - 20.3
    - 21.3
 
 notifications:
@@ -15,6 +14,5 @@ script:
   - export PATH=/home/travis/.cache/rebar3/bin:$PATH
   - rebar3 --version
   - erl -version
+  - rebar3 format --verify
   - rebar3 test
-  - git --no-pager diff
-  - if [[ $(git --no-pager diff) ]]; then echo "Your code is not properly formatted, run rebar3 format on it"; exit 999; fi

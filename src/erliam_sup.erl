@@ -3,26 +3,21 @@
 -behaviour(supervisor).
 
 -export([start_link/1]).
-
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
-
 
 %%%% API
 
 start_link(Opts) ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, Opts).
 
-
 %%%% SUPERVISOR CALLBACKS
 
 init(_) ->
     configure_httpc_profile(),
 
-    SupFlags = #{strategy => one_for_one,
-                 intensity => 10,
-                 period => 10},
+    SupFlags = #{strategy => one_for_one, intensity => 10, period => 10},
 
     CredSrv = #{id => erliam_srv,
                 type => worker,
@@ -30,7 +25,6 @@ init(_) ->
                 start => {erliam_srv, start_link, []}},
 
     {ok, {SupFlags, [CredSrv]}}.
-
 
 %%%% INTERNAL FUNCTIONS
 
