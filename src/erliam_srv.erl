@@ -11,6 +11,8 @@
 
 -behaviour(gen_server).
 
+-format #{inline_items => {when_over, 19}}.
+
 %% API
 -export([start_link/0, current/0, invalidate/0]).
 %% gen_server callbacks
@@ -106,74 +108,16 @@ remaining_lifetime(#credentials{expiration = ExpTime}) ->
         calendar:datetime_to_gregorian_seconds(parse_exptime(ExpTime)) -
           calendar:datetime_to_gregorian_seconds(calendar:universal_time())).
 
-parse_exptime([Y1,
-               Y2,
-               Y3,
-               Y4,
-               $-,
-               Mon1,
-               Mon2,
-               $-,
-               D1,
-               D2,
-               $T,
-               H1,
-               H2,
-               $:,
-               Min1,
-               Min2,
-               $:,
-               S1,
-               S2,
-               $Z]) ->
+parse_exptime([Y1, Y2, Y3, Y4, $-, Mon1, Mon2, $-, D1, D2, $T, H1, H2, $:, Min1, Min2, $:,
+               S1, S2, $Z]) ->
     {{list_to_integer([Y1, Y2, Y3, Y4]),
       list_to_integer([Mon1, Mon2]),
       list_to_integer([D1, D2])},
      {list_to_integer([H1, H2]), list_to_integer([Min1, Min2]), list_to_integer([S1, S2])}};
-parse_exptime([Y1,
-               Y2,
-               Y3,
-               Y4,
-               $-,
-               Mon1,
-               Mon2,
-               $-,
-               D1,
-               D2,
-               $T,
-               H1,
-               H2,
-               $:,
-               Min1,
-               Min2,
-               $:,
-               S1,
-               S2,
-               $.,
-               _,
-               _,
-               _,
-               $Z]) ->
-    parse_exptime([Y1,
-                   Y2,
-                   Y3,
-                   Y4,
-                   $-,
-                   Mon1,
-                   Mon2,
-                   $-,
-                   D1,
-                   D2,
-                   $T,
-                   H1,
-                   H2,
-                   $:,
-                   Min1,
-                   Min2,
-                   $:,
-                   S1,
-                   S2,
-                   $Z]).
+parse_exptime([Y1, Y2, Y3, Y4, $-, Mon1, Mon2, $-, D1, D2, $T, H1, H2, $:, Min1, Min2, $:,
+               S1, S2, $., _, _, _, $Z]) ->
+    parse_exptime([Y1, Y2, Y3, Y4, $-, Mon1, Mon2, $-, D1, D2, $T, H1, H2, $:, Min1, Min2, $:,
+                   S1, S2, $Z]).
 
 %%%% TESTS
 -ifdef(TEST).
