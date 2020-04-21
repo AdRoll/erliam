@@ -35,4 +35,3 @@ configure_httpc_profile() ->
                             {max_pipeline_length, 0},
                             {keep_alive_timeout, 1000}],
                            Profile).
-

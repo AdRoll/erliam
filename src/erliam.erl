@@ -36,4 +36,3 @@ httpc_profile() ->
 %% force cached credentials to be invalidated and refreshed.
 invalidate() ->
     erliam_srv:invalidate().
-

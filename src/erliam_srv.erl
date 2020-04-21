@@ -128,4 +128,3 @@ exptime_test() ->
     ?assertEqual({{2017, 6, 2}, {1, 2, 3}}, parse_exptime("2017-06-02T01:02:03Z")).
 
 -endif.
-

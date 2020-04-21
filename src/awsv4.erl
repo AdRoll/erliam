@@ -353,4 +353,3 @@ aws4_example3_test() ->
     ?assertEqual(Expected, Actual).
 
 -endif.
-
