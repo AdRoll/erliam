@@ -6,3 +6,4 @@
          security_token :: undefined | string(), % required when using temporary credentials
          secret_access_key :: string(),
          access_key_id :: string()}).
+

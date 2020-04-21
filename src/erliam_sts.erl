@@ -72,3 +72,4 @@ convert_credential_plist(Plist) ->
               {'Expiration', expiration},
               {'SessionToken', token}],
     [{erliam_util:getkey(K, KeyMap), binary_to_list(V)} || {K, V} <- Plist].
+

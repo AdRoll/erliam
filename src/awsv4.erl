@@ -83,7 +83,6 @@ headers(#credentials{secret_access_key = SecretAccessKey,
                              end,
                              "AWS4" ++ SecretAccessKey,
                              Scope),
-
     Headers = lists:keysort(1,
                             [{string:to_lower(K), V}
                              || {K, V}
@@ -98,7 +97,6 @@ headers(#credentials{secret_access_key = SecretAccessKey,
                                                 ExtraSignedHeaders
                                          end,
                                 V /= undefined]),
-
     SignedHeaders = string:join([Name || {Name, _} <- Headers], ";"),
 
     CanonicalHeaders = [[K, $:, V, $\n] || {K, V} <- Headers],
@@ -111,7 +109,6 @@ headers(#credentials{secret_access_key = SecretAccessKey,
                              CanonicalHeaders,
                              SignedHeaders,
                              PayloadHash]),
-
     CredentialScope = join($/, Scope),
 
     StringToSign = join($\n,
@@ -119,7 +116,6 @@ headers(#credentials{secret_access_key = SecretAccessKey,
                          ActualAwsDate,
                          CredentialScope,
                          hexlify(crypto:hash(Hash, CanonicalRequest))]),
-
     Signature = hexlify(crypto:hmac(Hash, SigningKey, StringToSign)),
 
     [{"authorization",
@@ -357,3 +353,4 @@ aws4_example3_test() ->
     ?assertEqual(Expected, Actual).
 
 -endif.
+
