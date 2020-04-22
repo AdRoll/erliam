@@ -1,4 +1,6 @@
-[{<<"jiffy">>,
-  {git,"https://github.com/davisp/jiffy.git",
-       {ref,"06aaf440e091c9fd5f8aea557ac760a33bd37130"}},
-  0}].
+{"1.1.0",
+[{<<"jiffy">>,{pkg,<<"jiffy">>,<<"1.0.4">>},0}]}.
+[
+{pkg_hash,[
+ {<<"jiffy">>, <<"72ADEFF75C52A2FF07DE738F0813768ABE7CE158026CC1115A170340259C0CAA">>}]}
+].

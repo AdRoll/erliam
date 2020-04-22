@@ -2,6 +2,9 @@
 
 all: compile
 
+deps:
+	@rebar3 get-deps
+
 compile:
 	@rebar3 compile
 
