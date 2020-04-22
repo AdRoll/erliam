@@ -11,5 +11,6 @@
     ssl,
     jiffy]},
   {modules, []},
-  {env,[]}
+  {env,[]},
+  {licenses, ["BSD-3-Clause"]}
  ]}.
