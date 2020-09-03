@@ -19,12 +19,13 @@
 get_session_token(Credentials) ->
     Query = #{"Action" => "GetSessionToken", "Version" => "2011-06-15"},
     Host = ?STS_HOST,
-    Headers = [{"Accept", "text/xml"}] ++
-                awsv4:headers(Credentials,
-                              #{service => "sts",
-                                region => ?STS_REGION,
-                                query_params => Query,
-                                host => Host}),
+    Headers =
+        [{"Accept", "text/xml"}] ++
+            awsv4:headers(Credentials,
+                          #{service => "sts",
+                            region => ?STS_REGION,
+                            query_params => Query,
+                            host => Host}),
     Url = "https://" ++ Host ++ "?" ++ awsv4:canonical_query(Query),
     decode_response(httpc:request(get,
                                   {Url, Headers},
@@ -36,10 +37,10 @@ get_session_token(Credentials) ->
 
 decode_response({ok, {{_, 200, _}, Headers, Body}}) ->
     case erliam_util:mime_type(Headers) of
-      "text/xml" ->
-          decode_credentials([erliam_xml:parse(Body)]);
-      _ ->
-          {error, unacceptable_response}
+        "text/xml" ->
+            decode_credentials([erliam_xml:parse(Body)]);
+        _ ->
+            {error, unacceptable_response}
     end;
 decode_response({ok, {{_, 406, _}, _, _}}) ->
     %% the server respected our accept header and could not produce a response with any of
@@ -60,15 +61,16 @@ decode_credentials(Plist) ->
                      Plist,
                      KeyPath)
         of
-      CredentialPlist when is_list(CredentialPlist) ->
-          awsv4:credentials_from_plist(convert_credential_plist(CredentialPlist));
-      _ ->
-          {error, {bad_result, Plist}}
+        CredentialPlist when is_list(CredentialPlist) ->
+            awsv4:credentials_from_plist(convert_credential_plist(CredentialPlist));
+        _ ->
+            {error, {bad_result, Plist}}
     end.
 
 convert_credential_plist(Plist) ->
-    KeyMap = [{'AccessKeyId', access_key_id},
-              {'SecretAccessKey', secret_access_key},
-              {'Expiration', expiration},
-              {'SessionToken', token}],
+    KeyMap =
+        [{'AccessKeyId', access_key_id},
+         {'SecretAccessKey', secret_access_key},
+         {'Expiration', expiration},
+         {'SessionToken', token}],
     [{erliam_util:getkey(K, KeyMap), binary_to_list(V)} || {K, V} <- Plist].

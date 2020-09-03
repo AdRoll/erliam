@@ -23,11 +23,11 @@ parse(Xml) ->
 parse_element(#xmlElement{name = Name, content = Content}) ->
     {Name,
      case Content of
-       [#xmlElement{} | _] ->
-           [{ChildName, parse_element(ChildContent)}
-            || #xmlElement{name = ChildName, content = ChildContent} <- Content];
-       _ ->
-           parse_element(Content)
+         [#xmlElement{} | _] ->
+             [{ChildName, parse_element(ChildContent)}
+              || #xmlElement{name = ChildName, content = ChildContent} <- Content];
+         _ ->
+             parse_element(Content)
      end};
 parse_element([#xmlText{} | _] = L) ->
     case lists:all(fun (E) ->
@@ -35,12 +35,12 @@ parse_element([#xmlText{} | _] = L) ->
                    end,
                    L)
         of
-      true ->
-          unescape_xml_text(xmerl_xs:value_of(L));
-      false ->
-          %% if a list of elements is not solely text, discard the text elements and parse
-          %% the non-text elements:
-          parse_element([X || X <- L, not is_record(X, xmlText)])
+        true ->
+            unescape_xml_text(xmerl_xs:value_of(L));
+        false ->
+            %% if a list of elements is not solely text, discard the text elements and parse
+            %% the non-text elements:
+            parse_element([X || X <- L, not is_record(X, xmlText)])
     end;
 parse_element(L) when is_list(L) ->
     [parse_element(X) || X <- L];
@@ -66,14 +66,15 @@ unescape_xml_text(X, [{C, R} | T]) ->
 -include_lib("eunit/include/eunit.hrl").
 
 basic_decode_test() ->
-    Data = <<"<GetSessionTokenResponse xmlns=\"https://sts.amazonaws.com/doc/2011-"
-             "06-15/\">\n  <GetSessionTokenResult>\n   <Credentials>\n   "
-             " <AccessKeyId>ACCESS_KEY_ID</AccessKeyId>\n    <SecretAccessKey>SECR"
-             "ET_ACCESS_KEY</SecretAccessKey>\n    <SessionToken>SESSION_TOKEN</Se"
-             "ssionToken>\n    <Expiration>EXPIRATION</Expiration>\n   </Credentia"
-             "ls>\n  </GetSessionTokenResult>\n  <ResponseMetadata>\n   <RequestId"
-             ">REQUEST_ID</RequestId>\n  </ResponseMetadata>\n </GetSessionTokenRe"
-             "sponse>\n">>,
+    Data =
+        <<"<GetSessionTokenResponse xmlns=\"https://sts.amazonaws.com/doc/2011-"
+          "06-15/\">\n  <GetSessionTokenResult>\n   <Credentials>\n   "
+          " <AccessKeyId>ACCESS_KEY_ID</AccessKeyId>\n    <SecretAccessKey>SECR"
+          "ET_ACCESS_KEY</SecretAccessKey>\n    <SessionToken>SESSION_TOKEN</Se"
+          "ssionToken>\n    <Expiration>EXPIRATION</Expiration>\n   </Credentia"
+          "ls>\n  </GetSessionTokenResult>\n  <ResponseMetadata>\n   <RequestId"
+          ">REQUEST_ID</RequestId>\n  </ResponseMetadata>\n </GetSessionTokenRe"
+          "sponse>\n">>,
     ?assertEqual({'GetSessionTokenResponse',
                   [{'GetSessionTokenResult',
                     [{'Credentials',
