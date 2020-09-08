@@ -15,11 +15,11 @@
 -spec mime_type(list()) -> string().
 mime_type(Headers) ->
     case find_header("content-type", Headers) of
-      undefined ->
-          "text/plain";
-      MimeType ->
-          [BaseType | _] = string:tokens(MimeType, ";"),
-          string:strip(BaseType)
+        undefined ->
+            "text/plain";
+        MimeType ->
+            [BaseType | _] = string:tokens(MimeType, ";"),
+            string:strip(BaseType)
     end.
 
 %% Return the named HTTP response header from the given proplist of headers
@@ -31,10 +31,10 @@ find_header(Name, Headers) ->
 
 getkey(Key, Plist) ->
     case lists:keyfind(Key, 1, Plist) of
-      false ->
-          undefined;
-      {Key, Value} ->
-          Value
+        false ->
+            undefined;
+        {Key, Value} ->
+            Value
     end.
 
 %%%% TESTS

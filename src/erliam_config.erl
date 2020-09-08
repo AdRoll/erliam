@@ -7,10 +7,10 @@ g(Key) ->
 
 g(Key, Default) ->
     case application:get_env(erliam, Key) of
-      undefined ->
-          Default;
-      {ok, undefined} ->
-          Default;
-      {ok, Value} ->
-          Value
+        undefined ->
+            Default;
+        {ok, undefined} ->
+            Default;
+        {ok, Value} ->
+            Value
     end.
