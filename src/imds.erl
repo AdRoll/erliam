@@ -57,9 +57,11 @@ imds_response(Url, MimeTypes, Timeout) ->
                        [{timeout, Timeout}],
                        [{body_format, binary}],
                        erliam:httpc_profile())
-        of
+    of
         {ok, {{_, 200, _}, Headers, Body}} ->
-            case lists:member(erliam_util:mime_type(Headers), MimeTypes) of
+            case lists:member(
+                     erliam_util:mime_type(Headers), MimeTypes)
+            of
                 true ->
                     {ok, Body};
                 false ->
@@ -106,15 +108,12 @@ imds_text_response(Url) ->
     imds_transform_response(Url,
                             ["text/plain"],
                             %% fixme; assumes utf-8 encoding.
-                            fun (Result) ->
-                                    case unicode:characters_to_list(Result) of
-                                        {error, _, _} ->
-                                            {error, invalid_unicode};
-                                        {incomplete, _, _} ->
-                                            {error, invalid_unicode};
-                                        String ->
-                                            {ok, String}
-                                    end
+                            fun(Result) ->
+                               case unicode:characters_to_list(Result) of
+                                   {error, _, _} -> {error, invalid_unicode};
+                                   {incomplete, _, _} -> {error, invalid_unicode};
+                                   String -> {ok, String}
+                               end
                             end).
 
 %% Fetch the given Url and return the response as a proplist of tokens.
@@ -133,13 +132,11 @@ metadata_response_to_token_proplist(Body) ->
          {<<"Token">>, token}],
     case get_code(Body) of
         {success, Plist} ->
-            lists:foldl(fun ({Element, Value}, Acc) ->
-                                case erliam_util:getkey(Element, Targets) of
-                                    undefined ->
-                                        Acc;
-                                    AtomName ->
-                                        [{AtomName, binary_to_list(Value)} | Acc]
-                                end
+            lists:foldl(fun({Element, Value}, Acc) ->
+                           case erliam_util:getkey(Element, Targets) of
+                               undefined -> Acc;
+                               AtomName -> [{AtomName, binary_to_list(Value)} | Acc]
+                           end
                         end,
                         [],
                         Plist);

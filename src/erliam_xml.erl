@@ -15,7 +15,9 @@
 %%%% API
 
 parse(Xml) ->
-    {E, _} = xmerl_scan:string(unicode:characters_to_list(Xml, utf8)),
+    {E, _} =
+        xmerl_scan:string(
+            unicode:characters_to_list(Xml, utf8)),
     parse_element(E).
 
 %%%% INTERNAL FUNCTIONS
@@ -30,11 +32,7 @@ parse_element(#xmlElement{name = Name, content = Content}) ->
              parse_element(Content)
      end};
 parse_element([#xmlText{} | _] = L) ->
-    case lists:all(fun (E) ->
-                           is_record(E, xmlText)
-                   end,
-                   L)
-        of
+    case lists:all(fun(E) -> is_record(E, xmlText) end, L) of
         true ->
             unescape_xml_text(xmerl_xs:value_of(L));
         false ->

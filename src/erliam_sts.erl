@@ -60,7 +60,7 @@ decode_credentials(Plist) ->
                      end,
                      Plist,
                      KeyPath)
-        of
+    of
         CredentialPlist when is_list(CredentialPlist) ->
             awsv4:credentials_from_plist(convert_credential_plist(CredentialPlist));
         _ ->
