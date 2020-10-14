@@ -76,11 +76,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
     Hash = sha256,
     Algorithm = "AWS4-HMAC-SHA256",
     SigningKey =
-        lists:foldl(fun (E, A) ->
-                            crypto:hmac(Hash, A, E)
-                    end,
-                    "AWS4" ++ SecretAccessKey,
-                    Scope),
+        lists:foldl(fun(E, A) -> crypto:hmac(Hash, A, E) end, "AWS4" ++ SecretAccessKey, Scope),
 
     Headers =
         lists:keysort(1,
@@ -138,8 +134,9 @@ headers(#credentials{secret_access_key = SecretAccessKey,
 
 -spec isonow(calendar:datetime()) -> aws_datetime().
 isonow({{Year, Month, Day}, {Hour, Min, Sec}}) ->
-    lists:flatten(io_lib:format("~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
-                                [Year, Month, Day, Hour, Min, Sec])).
+    lists:flatten(
+        io_lib:format("~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
+                      [Year, Month, Day, Hour, Min, Sec])).
 
 isonow() ->
     isonow(calendar:universal_time()).
