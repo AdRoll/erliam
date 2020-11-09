@@ -17,7 +17,10 @@ start_link(Opts) ->
 init(_) ->
     configure_httpc_profile(),
 
-    SupFlags = #{strategy => one_for_one, intensity => 10, period => 10},
+    SupFlags =
+        #{strategy => one_for_one,
+          intensity => 10,
+          period => 10},
 
     CredSrv =
         #{id => erliam_srv,
