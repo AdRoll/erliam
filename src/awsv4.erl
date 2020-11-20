@@ -210,7 +210,7 @@ quote(X, Kind) when is_binary(X) ->
        || <<C:8>> <= X >>.
 
 should_encode(X, Kind) ->
-    ExtraPath =
+    ExtraChars =
         case Kind of
             all ->
                 ":/?#[]@";
@@ -218,7 +218,7 @@ should_encode(X, Kind) ->
                 []
         end,
     %% note: does not encode gen-delims ()
-    X > 127 orelse X < 33 orelse lists:member(X, "!$&'()*+,;=" ++ ExtraPath).
+    X > 127 orelse X < 33 orelse lists:member(X, "!$&'()*+,;=" ++ ExtraChars).
 
 hexlify(Bin) ->
     [int_to_hex(X) || X <- binary_to_list(Bin)].
