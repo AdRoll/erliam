@@ -100,10 +100,10 @@ update_credentials() ->
     end.
 
 remaining_lifetime(#credentials{expiration = ExpTime}) ->
+    Now = calendar:universal_time(),
     max(0,
-        calendar:datetime_to_gregorian_seconds(parse_exptime(ExpTime)) -
-            calendar:datetime_to_gregorian_seconds(
-                calendar:universal_time())).
+        calendar:datetime_to_gregorian_seconds(parse_exptime(ExpTime))
+        - calendar:datetime_to_gregorian_seconds(Now)).
 
 parse_exptime([Y1, Y2, Y3, Y4, $-, Mon1, Mon2, $-, D1, D2, $T, H1, H2, $:, Min1, Min2, $:,
                S1, S2, $Z]) ->

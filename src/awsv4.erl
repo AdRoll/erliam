@@ -86,7 +86,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
                                   {"x-amz-date", ActualAwsDate},
                                   {"x-amz-security-token", SecurityToken},
                                   {"x-amz-target", TargetAPI}]
-                                     ++
+                                 ++
                                      if is_map(ExtraSignedHeaders) ->
                                             maps:to_list(ExtraSignedHeaders);
                                         true ->
@@ -210,17 +210,15 @@ quote(X, Kind) when is_binary(X) ->
        || <<C:8>> <= X >>.
 
 should_encode(X, Kind) ->
+    ExtraPath =
+        case Kind of
+            all ->
+                ":/?#[]@";
+            path ->
+                []
+        end,
     %% note: does not encode gen-delims ()
-    X > 127 orelse
-        X < 33 orelse
-            lists:member(X,
-                         "!$&'()*+,;=" ++
-                             case Kind of
-                                 all ->
-                                     ":/?#[]@";
-                                 path ->
-                                     []
-                             end).
+    X > 127 orelse X < 33 orelse lists:member(X, "!$&'()*+,;=" ++ ExtraPath).
 
 hexlify(Bin) ->
     [int_to_hex(X) || X <- binary_to_list(Bin)].
