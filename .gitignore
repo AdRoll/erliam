@@ -1,3 +1,5 @@
+doc/
+rebar3.carshdump
 .eunit
 deps
 *.o
