@@ -20,12 +20,11 @@ get_session_token(Credentials) ->
     Query = #{"Action" => "GetSessionToken", "Version" => "2011-06-15"},
     Host = ?STS_HOST,
     Headers =
-        [{"Accept", "text/xml"}] ++
-            awsv4:headers(Credentials,
-                          #{service => "sts",
-                            region => ?STS_REGION,
-                            query_params => Query,
-                            host => Host}),
+        [{"Accept", "text/xml"} | awsv4:headers(Credentials,
+                                                #{service => "sts",
+                                                  region => ?STS_REGION,
+                                                  query_params => Query,
+                                                  host => Host})],
     Url = "https://" ++ Host ++ "?" ++ awsv4:canonical_query(Query),
     decode_response(httpc:request(get,
                                   {Url, Headers},
