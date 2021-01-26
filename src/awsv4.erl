@@ -102,7 +102,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
     CanonicalRequest =
         join($\n,
              [Method,
-              canonical_path(Service, Path),
+              canonical_path(Path),
               canonical_query(QueryParams),
               CanonicalHeaders,
               SignedHeaders,
@@ -187,7 +187,7 @@ headers_(Credentials,
             ExtraSignedHeaders,
             RequestPayload).
 
-canonical_path(_Service, Path) ->
+canonical_path(Path) ->
     %% note: should remove redundant and relative path components, except leave empty path
     %% components for s3.
     quote(Path, path).
