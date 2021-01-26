@@ -86,12 +86,11 @@ headers(#credentials{secret_access_key = SecretAccessKey,
                                   {"x-amz-date", ActualAwsDate},
                                   {"x-amz-security-token", SecurityToken},
                                   {"x-amz-target", TargetAPI}]
-                                 ++
-                                     if is_map(ExtraSignedHeaders) ->
-                                            maps:to_list(ExtraSignedHeaders);
-                                        true ->
-                                            ExtraSignedHeaders
-                                     end,
+                                 ++ if is_map(ExtraSignedHeaders) ->
+                                           maps:to_list(ExtraSignedHeaders);
+                                       true ->
+                                           ExtraSignedHeaders
+                                    end,
                           V /= undefined]),
 
     SignedHeaders = string:join([Name || {Name, _} <- Headers], ";"),
