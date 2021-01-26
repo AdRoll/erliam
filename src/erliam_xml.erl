@@ -8,6 +8,8 @@
 
 -module(erliam_xml).
 
+-elvis([{elvis_style, atom_naming_convention, #{regex => "^([a-z][a-zA-Z0-9_]*?)*$"}}]).
+
 -export([parse/1]).
 
 -include_lib("xmerl/include/xmerl.hrl").

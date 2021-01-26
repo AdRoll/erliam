@@ -347,7 +347,8 @@ aws4_example3_test() ->
                              region => "us-east-1",
                              host => "example.amazonaws.com",
                              path =>
-                                 "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}]),
+                                 "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                 ++ "abcdefghijklmnopqrstuvwxyz"}]),
     Expected =
         flattened([{"authorization",
                     ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/a"

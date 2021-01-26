@@ -16,8 +16,7 @@
 %% API
 -export([start_link/0, current/0, invalidate/0]).
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
-         code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
 -define(SERVER, ?MODULE).
 -define(TAB, ?MODULE).
@@ -27,10 +26,12 @@
 
 -record(state, {}).
 
+-type state() :: #state{}.
+
 %%%% API
 
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, noargs, []).
 
 current() ->
     [Credentials] = ets:lookup(?TAB, credentials),
@@ -40,8 +41,8 @@ invalidate() ->
     gen_server:call(?SERVER, invalidate).
 
 %%%% CALLBACKS
-
-init([]) ->
+-spec init(noargs) -> {ok, state()} | {stop, term()}.
+init(noargs) ->
     ets:new(?TAB, [named_table, public, {read_concurrency, true}]),
     case update_credentials() of
         {error, Error} ->
@@ -51,27 +52,28 @@ init([]) ->
             {ok, #state{}}
     end.
 
+-spec handle_call(term(), _, state()) -> {reply, ok | {error, not_implemented}, state()}.
 handle_call(invalidate, _From, State) ->
     update_credentials(),
     {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, {error, not_implemented}, State}.
 
+-spec handle_cast(_, state()) -> {noreply, state()}.
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+-spec handle_info(refresh | _, state()) -> {noreply, state()}.
 handle_info(refresh, State) ->
     maybe_update_credentials(),
     {noreply, State};
 handle_info(_, State) ->
     {noreply, State}.
 
+-spec terminate(_, state()) -> ok.
 terminate(_Reason, _State) ->
     ets:delete(?TAB),
     ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
 
 %%%% INTERNAL FUNCTIONS
 
