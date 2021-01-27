@@ -86,12 +86,11 @@ headers(#credentials{secret_access_key = SecretAccessKey,
                                   {"x-amz-date", ActualAwsDate},
                                   {"x-amz-security-token", SecurityToken},
                                   {"x-amz-target", TargetAPI}]
-                                 ++
-                                     if is_map(ExtraSignedHeaders) ->
-                                            maps:to_list(ExtraSignedHeaders);
-                                        true ->
-                                            ExtraSignedHeaders
-                                     end,
+                                 ++ if is_map(ExtraSignedHeaders) ->
+                                           maps:to_list(ExtraSignedHeaders);
+                                       true ->
+                                           ExtraSignedHeaders
+                                    end,
                           V /= undefined]),
 
     SignedHeaders = string:join([Name || {Name, _} <- Headers], ";"),
@@ -102,7 +101,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
     CanonicalRequest =
         join($\n,
              [Method,
-              canonical_path(Service, Path),
+              canonical_path(Path),
               canonical_query(QueryParams),
               CanonicalHeaders,
               SignedHeaders,
@@ -187,7 +186,7 @@ headers_(Credentials,
             ExtraSignedHeaders,
             RequestPayload).
 
-canonical_path(_Service, Path) ->
+canonical_path(Path) ->
     %% note: should remove redundant and relative path components, except leave empty path
     %% components for s3.
     quote(Path, path).
@@ -347,7 +346,8 @@ aws4_example3_test() ->
                              region => "us-east-1",
                              host => "example.amazonaws.com",
                              path =>
-                                 "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}]),
+                                 "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                 ++ "abcdefghijklmnopqrstuvwxyz"}]),
     Expected =
         flattened([{"authorization",
                     ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/a"
