@@ -110,9 +110,12 @@ imds_text_response(Url) ->
                             %% fixme; assumes utf-8 encoding.
                             fun(Result) ->
                                case unicode:characters_to_list(Result) of
-                                   {error, _, _} -> {error, invalid_unicode};
-                                   {incomplete, _, _} -> {error, invalid_unicode};
-                                   String -> {ok, String}
+                                   {error, _, _} ->
+                                       {error, invalid_unicode};
+                                   {incomplete, _, _} ->
+                                       {error, invalid_unicode};
+                                   String ->
+                                       {ok, String}
                                end
                             end).
 
@@ -134,8 +137,10 @@ metadata_response_to_token_proplist(Body) ->
         {success, Plist} ->
             lists:foldl(fun({Element, Value}, Acc) ->
                            case erliam_util:getkey(Element, Targets) of
-                               undefined -> Acc;
-                               AtomName -> [{AtomName, binary_to_list(Value)} | Acc]
+                               undefined ->
+                                   Acc;
+                               AtomName ->
+                                   [{AtomName, binary_to_list(Value)} | Acc]
                            end
                         end,
                         [],
