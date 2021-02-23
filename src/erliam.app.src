@@ -1,16 +1,10 @@
-{application, erliam,
+{application,
+ erliam,
  [{description, "AWSv4 signature and IAM credential support"},
   {vsn, "git"},
   {registered, [erliam_sup, erliam_srv]},
   {mod, {erliam_app, []}},
-  {applications,
-   [kernel,
-    stdlib,
-    inets,
-    crypto,
-    ssl,
-    jiffy]},
+  {applications, [kernel, stdlib, inets, crypto, ssl, jiffy]},
   {modules, []},
-  {env,[]},
-  {licenses, ["BSD-3-Clause"]}
- ]}.
+  {env, []},
+  {licenses, ["BSD-3-Clause"]}]}.
