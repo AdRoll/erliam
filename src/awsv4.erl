@@ -76,7 +76,9 @@ headers(#credentials{secret_access_key = SecretAccessKey,
     Hash = sha256,
     Algorithm = "AWS4-HMAC-SHA256",
     SigningKey =
-        lists:foldl(fun(E, A) -> crypto:hmac(Hash, A, E) end, "AWS4" ++ SecretAccessKey, Scope),
+        lists:foldl(fun(E, A) -> crypto:mac(hmac, Hash, A, E) end,
+                    "AWS4" ++ SecretAccessKey,
+                    Scope),
 
     Headers =
         lists:keysort(1,
@@ -116,7 +118,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
               CredentialScope,
               hexlify(crypto:hash(Hash, CanonicalRequest))]),
 
-    Signature = hexlify(crypto:hmac(Hash, SigningKey, StringToSign)),
+    Signature = hexlify(crypto:mac(hmac, Hash, SigningKey, StringToSign)),
 
     [{"authorization",
       [Algorithm,

@@ -40,7 +40,7 @@ public_hostname() ->
 get_session_token() ->
     case role_name() of
         {ok, RoleName} ->
-            Result = imds_tokens(["iam/security-credentials/", http_uri:encode(RoleName)]),
+            Result = imds_tokens(["iam/security-credentials/", httpd_util:encode_hex(RoleName)]),
             awsv4:credentials_from_plist(Result);
         Error ->
             Error
