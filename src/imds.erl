@@ -178,8 +178,7 @@ call_with_retry(_, _, _, _, _) ->
     {error, retries_exceeded}.
 
 imds_url(Suffix) ->
-    uri_string:normalize(
-        ["http://", ?IMDS_HOST, "/", ?IMDS_VERSION, "/meta-data/", Suffix]).
+    uri_string:normalize(["http://", ?IMDS_HOST, "/", ?IMDS_VERSION, "/meta-data/", Suffix]).
 
 imds_text(Suffix) ->
     imds_text_response(imds_url(Suffix)).
