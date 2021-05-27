@@ -40,7 +40,7 @@ public_hostname() ->
 get_session_token() ->
     case role_name() of
         {ok, RoleName} ->
-            Result = imds_tokens(["iam/security-credentials/", http_uri:encode(RoleName)]),
+            Result = imds_tokens(["iam/security-credentials/", RoleName]),
             awsv4:credentials_from_plist(Result);
         Error ->
             Error
@@ -178,7 +178,7 @@ call_with_retry(_, _, _, _, _) ->
     {error, retries_exceeded}.
 
 imds_url(Suffix) ->
-    lists:flatten(["http://", ?IMDS_HOST, "/", ?IMDS_VERSION, "/meta-data/", Suffix]).
+    uri_string:normalize(["http://", ?IMDS_HOST, "/", ?IMDS_VERSION, "/meta-data/", Suffix]).
 
 imds_text(Suffix) ->
     imds_text_response(imds_url(Suffix)).
