@@ -4,8 +4,6 @@
 %%%     Helper module for obtaining information from an instance metadata server.
 %%%
 %%% @end
-%%% Created : 17 Oct 2014 by Mike Watters <mike.watters@adroll.com>
-
 -module(imds).
 
 -export([role_name/0, zone/0, instance_id/0, public_hostname/0, get_session_token/0,
@@ -90,7 +88,7 @@ imds_response(Url, MimeTypes, Timeout, Retries) ->
 
 %%%% INTERNAL FUNCTIONS
 
-%% Call the given arity-1 Transform function with the result of a successful call to
+%% Call the given Transform function with the result of a successful call to
 %% imds_response/4, or return the error which resulted from that call.
 -spec imds_transform_response(string(), [string()], function()) ->
                                  {error, term()} | term().

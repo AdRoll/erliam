@@ -67,14 +67,20 @@ unescape_xml_text(X, [{C, R} | T]) ->
 
 basic_decode_test() ->
     Data =
-        <<"<GetSessionTokenResponse xmlns=\"https://sts.amazonaws.com/doc/2011-"
-          "06-15/\">\n  <GetSessionTokenResult>\n   <Credentials>\n   "
-          " <AccessKeyId>ACCESS_KEY_ID</AccessKeyId>\n    <SecretAccessKey>SECR"
-          "ET_ACCESS_KEY</SecretAccessKey>\n    <SessionToken>SESSION_TOKEN</Se"
-          "ssionToken>\n    <Expiration>EXPIRATION</Expiration>\n   </Credentia"
-          "ls>\n  </GetSessionTokenResult>\n  <ResponseMetadata>\n   <RequestId"
-          ">REQUEST_ID</RequestId>\n  </ResponseMetadata>\n </GetSessionTokenRe"
-          "sponse>\n">>,
+        <<"<GetSessionTokenResponse"
+          " xmlns=\"https://sts.amazonaws.com/doc/2011-06-15/\">\n"
+          "  <GetSessionTokenResult>\n"
+          "   <Credentials>\n"
+          "    <AccessKeyId>ACCESS_KEY_ID</AccessKeyId>\n"
+          "    <SecretAccessKey>SECRET_ACCESS_KEY</SecretAccessKey>\n"
+          "    <SessionToken>SESSION_TOKEN</SessionToken>\n"
+          "    <Expiration>EXPIRATION</Expiration>\n"
+          "   </Credentials>\n"
+          "  </GetSessionTokenResult>\n"
+          "  <ResponseMetadata>\n"
+          "   <RequestId>REQUEST_ID</RequestId>\n"
+          "  </ResponseMetadata>\n"
+          " </GetSessionTokenResponse>\n">>,
     ?assertEqual({'GetSessionTokenResponse',
                   [{'GetSessionTokenResult',
                     [{'Credentials',
