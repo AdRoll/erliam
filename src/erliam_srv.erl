@@ -2,8 +2,8 @@
 %%% @doc
 %%%
 %%%    Server which creates and maintains an ets table containing aws credentials for use
-%%%    by other processes.  Refreshes the credentials ?MIN_LIFETIME seconds before
-%%%    expiration.
+%%%    by other processes.  Refreshes the credentials several seconds before
+%%%    expiration (according to what's specified as credential_min_lifetime in the configuration).
 %%%
 %%% @end
 %%% Created :  2 Jun 2017 by Mike Watters <mike.watters@adroll.com>

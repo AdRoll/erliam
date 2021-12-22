@@ -218,7 +218,7 @@ should_encode(X, Kind) ->
             path ->
                 []
         end,
-    %% note: does not encode gen-delims ()
+    %% note: does not encode generic delimiters ()
     X > 127 orelse X < 33 orelse lists:member(X, "!$&'()*+,;=" ++ ExtraChars).
 
 hexlify(Bin) ->
@@ -289,7 +289,7 @@ basic_headers_test() ->
     ?assertEqual(Expected, Actual).
 
 aws4_example1_test() ->
-    %% get-vanilla-query-order-key-case from aws4 test suite
+    %% get-vanilla-query-order-key-case from AWSv4 test suite
     Actual =
         flattened_headers([#credentials{secret_access_key =
                                             "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
@@ -313,7 +313,7 @@ aws4_example1_test() ->
     ?assertEqual(Expected, Actual).
 
 aws4_example2_test() ->
-    %% post-vanilla-query from aws4 test suite
+    %% post-vanilla-query from AWSv4 test suite
     Actual =
         flattened_headers([#credentials{secret_access_key =
                                             "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
@@ -338,7 +338,7 @@ aws4_example2_test() ->
     ?assertEqual(Expected, Actual).
 
 aws4_example3_test() ->
-    %% get-unreserved from aws4 test suite
+    %% get-unreserved from AWSv4 test suite
     Actual =
         flattened_headers([#credentials{secret_access_key =
                                             "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
