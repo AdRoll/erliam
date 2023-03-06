@@ -7,22 +7,46 @@
 %%% Created :  1 Feb 2017 by Mike Watters <mike.watters@adroll.com>
 -module(awsv4).
 
--export([headers/2, headers/3, headers/11, canonical_query/1, long_term_credentials/2,
+-export([headers/2, headers/3, canonical_query/1, long_term_credentials/2,
          credentials_from_plist/1, isonow/0, isonow/1]).
+-export([credentials_from_tuple/1, is_aws_credentials/1, credentials_expiration/1]).
 
--include("erliam.hrl").
+-record(credentials,
+        {expiration :: undefined | erliam:iso_datetime(),
+         security_token :: undefined | string(), % required when using temporary credentials
+         secret_access_key :: string(),
+         access_key_id :: string()}).
 
--type credentials() :: #credentials{}.
+-opaque credentials() :: #credentials{}.
 
--export_type([credentials/0]).
-
+-type datetime() :: string(). % "YYYYMMDDTHHMMSSZ"
 -type pairs() :: #{string() => iodata()} | [{string(), iodata()}].
+
+-export_type([credentials/0, datetime/0, pairs/0]).
 
 %%%% API
 
+%% @doc Function used to "convert" a tuple returned from an ets:lookup/2 call
+%%      into a valid opaque term of type credentials/0.
+-spec credentials_from_tuple(tuple()) -> credentials().
+credentials_from_tuple(#credentials{} = Credentials) ->
+    Credentials.
+
+-spec is_aws_credentials(any()) -> boolean().
+is_aws_credentials(#credentials{}) ->
+    true;
+is_aws_credentials(_) ->
+    false.
+
+-spec credentials_expiration(credentials()) -> undefined | erliam:iso_datetime().
+credentials_expiration(#credentials{expiration = ExpTime}) ->
+    ExpTime.
+
+-spec headers(credentials(), map()) -> [{string(), iodata()}].
 headers(Credentials, Parameters) ->
     headers(Credentials, Parameters, <<>>).
 
+-spec headers(credentials(), map(), undefined | binary()) -> [{string(), iodata()}].
 headers(Credentials, Parameters, undefined) ->
     headers(Credentials, Parameters, <<>>);
 headers(Credentials,
@@ -38,31 +62,19 @@ headers(Credentials,
           host => join($., [Service, Region, "amazonaws.com"])},
     headers_(Credentials, maps:merge(Defaults, Parameters), RequestPayload).
 
--spec headers(Credentials :: credentials(),
-              Service :: string(),
-              Region :: string(),
-              Host :: string(),
-              AwsDate :: undefined | aws_datetime(),
-              TargetAPI :: string() | undefined,
-              Method :: string(),
-              Path :: string(),
-              QueryParams :: pairs(),
-              ExtraSignedHeaders :: pairs(),
-              RequestPayload :: binary()) ->
-                 [{HeaderName :: string(), HeaderValue :: iodata()}].
-headers(#credentials{secret_access_key = SecretAccessKey,
-                     access_key_id = AccessKeyId,
-                     security_token = SecurityToken},
-        Service,
-        Region,
-        Host,
-        AwsDate,
-        TargetAPI,
-        Method,
-        Path,
-        QueryParams,
-        ExtraSignedHeaders,
-        RequestPayload) ->
+headers_(#credentials{secret_access_key = SecretAccessKey,
+                      access_key_id = AccessKeyId,
+                      security_token = SecurityToken},
+         #{service := Service,
+           region := Region,
+           host := Host,
+           target_api := TargetAPI,
+           aws_date := AwsDate,
+           method := Method,
+           path := Path,
+           query_params := QueryParams,
+           signed_headers := ExtraSignedHeaders},
+         RequestPayload) ->
     ActualAwsDate =
         case AwsDate of
             undefined ->
@@ -133,7 +145,7 @@ headers(#credentials{secret_access_key = SecretAccessKey,
      {"x-amz-content-sha256", PayloadHash}
      | Headers].
 
--spec isonow(calendar:datetime()) -> aws_datetime().
+-spec isonow(calendar:datetime()) -> datetime().
 isonow({{Year, Month, Day}, {Hour, Min, Sec}}) ->
     lists:flatten(
         io_lib:format("~4.10.0B~2.10.0B~2.10.0BT~2.10.0B~2.10.0B~2.10.0BZ",
@@ -164,29 +176,6 @@ credentials_from_plist(Plist) ->
                  secret_access_key = erliam_util:getkey(secret_access_key, Plist)}.
 
 %%%% INTERNAL FUNCTIONS
-
-headers_(Credentials,
-         #{service := Service,
-           region := Region,
-           host := Host,
-           target_api := TargetAPI,
-           aws_date := AwsDate,
-           method := Method,
-           path := Path,
-           query_params := QueryParams,
-           signed_headers := ExtraSignedHeaders},
-         RequestPayload) ->
-    headers(Credentials,
-            Service,
-            Region,
-            Host,
-            AwsDate,
-            TargetAPI,
-            Method,
-            Path,
-            QueryParams,
-            ExtraSignedHeaders,
-            RequestPayload).
 
 canonical_path(Path) ->
     %% note: should remove redundant and relative path components, except leave empty path
@@ -255,24 +244,27 @@ join_test() ->
 flattened(KVs) ->
     [{K, lists:flatten(V)} || {K, V} <- KVs].
 
-flattened_headers(Args) ->
-    flattened(apply(?MODULE, headers, Args)).
+flattened_headers(Credentials, Parameters) ->
+    flattened(headers(Credentials, Parameters)).
+
+flattened_headers(Credentials, Parameters, RequestPayload) ->
+    flattened(headers(Credentials, Parameters, RequestPayload)).
 
 basic_headers_test() ->
     Actual =
-        flattened_headers([#credentials{secret_access_key = "secretkey",
-                                        access_key_id = "accesskey",
-                                        security_token = "securitytoken"},
-                           "kinesis",
-                           "us-east-1",
-                           "kinesis.us-east-1.amazonaws.com",
-                           "20140629T022822Z",
-                           "Kinesis_20131202.ListStreams",
-                           "POST",
-                           "/",
-                           [],
-                           #{},
-                           "something"]),
+        flattened_headers(#credentials{secret_access_key = "secretkey",
+                                       access_key_id = "accesskey",
+                                       security_token = "securitytoken"},
+                          #{service => "kinesis",
+                            region => "us-east-1",
+                            host => "kinesis.us-east-1.amazonaws.com",
+                            target_api => "Kinesis_20131202.ListStreams",
+                            aws_date => "20140629T022822Z",
+                            method => "POST",
+                            path => "/",
+                            query_params => [],
+                            signed_headers => #{}},
+                          "something"),
     Expected =
         flattened([{"authorization",
                     ["AWS4-HMAC-SHA256 Credential=accesskey/20140629/us-east-1/kinesis/aws"
@@ -291,14 +283,14 @@ basic_headers_test() ->
 aws4_example1_test() ->
     %% get-vanilla-query-order-key-case from AWSv4 test suite
     Actual =
-        flattened_headers([#credentials{secret_access_key =
-                                            "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
-                                        access_key_id = "AKIDEXAMPLE"},
-                           #{aws_date => "20150830T123600Z",
-                             service => "service",
-                             region => "us-east-1",
-                             host => "example.amazonaws.com",
-                             query_params => #{"Param2" => "value2", "Param1" => "value1"}}]),
+        flattened_headers(#credentials{secret_access_key =
+                                           "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+                                       access_key_id = "AKIDEXAMPLE"},
+                          #{aws_date => "20150830T123600Z",
+                            service => "service",
+                            region => "us-east-1",
+                            host => "example.amazonaws.com",
+                            query_params => #{"Param2" => "value2", "Param1" => "value1"}}),
     Expected =
         flattened([{"authorization",
                     ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/a"
@@ -315,15 +307,15 @@ aws4_example1_test() ->
 aws4_example2_test() ->
     %% post-vanilla-query from AWSv4 test suite
     Actual =
-        flattened_headers([#credentials{secret_access_key =
-                                            "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
-                                        access_key_id = "AKIDEXAMPLE"},
-                           #{aws_date => "20150830T123600Z",
-                             service => "service",
-                             region => "us-east-1",
-                             host => "example.amazonaws.com",
-                             method => "POST",
-                             query_params => #{"Param1" => "value1"}}]),
+        flattened_headers(#credentials{secret_access_key =
+                                           "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+                                       access_key_id = "AKIDEXAMPLE"},
+                          #{aws_date => "20150830T123600Z",
+                            service => "service",
+                            region => "us-east-1",
+                            host => "example.amazonaws.com",
+                            method => "POST",
+                            query_params => #{"Param1" => "value1"}}),
     Expected =
         flattened([{"authorization",
                     ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/a"
@@ -340,16 +332,16 @@ aws4_example2_test() ->
 aws4_example3_test() ->
     %% get-unreserved from AWSv4 test suite
     Actual =
-        flattened_headers([#credentials{secret_access_key =
-                                            "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
-                                        access_key_id = "AKIDEXAMPLE"},
-                           #{aws_date => "20150830T123600Z",
-                             service => "service",
-                             region => "us-east-1",
-                             host => "example.amazonaws.com",
-                             path =>
-                                 "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                 ++ "abcdefghijklmnopqrstuvwxyz"}]),
+        flattened_headers(#credentials{secret_access_key =
+                                           "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+                                       access_key_id = "AKIDEXAMPLE"},
+                          #{aws_date => "20150830T123600Z",
+                            service => "service",
+                            region => "us-east-1",
+                            host => "example.amazonaws.com",
+                            path =>
+                                "/-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                ++ "abcdefghijklmnopqrstuvwxyz"}),
     Expected =
         flattened([{"authorization",
                     ["AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/a"
