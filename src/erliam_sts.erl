@@ -15,7 +15,7 @@
 -define(STS_TIMEOUT, 30000).
 
 %%%% API
-
+-spec get_session_token(awsv4:credentials()) -> {error, term()} | awsv4:credentials().
 get_session_token(Credentials) ->
     Query = #{"Action" => "GetSessionToken", "Version" => "2011-06-15"},
     Host = ?STS_HOST,
