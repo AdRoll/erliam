@@ -13,7 +13,7 @@
 -define(IMDS_VERSION, erliam_config:g(imds_version, "latest")).
 -define(IMDS_TIMEOUT, erliam_config:g(imds_timeout, 30000)).
 -define(IMDS_RETRIES, 3).
--define(IMDS_TOKEN_TTL, erliam_config:g(imds_token_ttl, 6 * 60 * 60)). % 6 hours default
+-define(IMDS_TOKEN_TTL, erliam_config:g(imds_token_ttl, "21600")). % 6 hours default
 -define(IMDS_USE_V2, erliam_config:g(imds_use_v2, true)). % Use IMDSv2 by default
 
 %%%% API
@@ -52,8 +52,7 @@ get_imdsv2_token() ->
     Timeout = erliam_config:g(imds_timeout, 30000),
     Host = erliam_config:g(imds_host, "169.254.169.254"),
     Url = uri_string:normalize(["http://", Host, "/latest/api/token"]),
-    TTLString = integer_to_list(?IMDS_TOKEN_TTL),
-    RequestHeaders = [{"X-aws-ec2-metadata-token-ttl-seconds", TTLString}],
+    RequestHeaders = [{"X-aws-ec2-metadata-token-ttl-seconds", ?IMDS_TOKEN_TTL}],
     case httpc:request(put,
                        {Url, RequestHeaders, "", ""},
                        [{timeout, Timeout}, {connect_timeout, Timeout}],
