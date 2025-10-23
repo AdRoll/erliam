@@ -7,7 +7,7 @@
 -module(imds).
 
 -export([role_name/0, zone/0, instance_id/0, public_hostname/0, get_session_token/0,
-         imds_response/3, imds_response/4]).
+         imds_response/3, imds_response/4, get_imdsv2_token/0]).
 
 -define(IMDS_HOST, erliam_config:g(imds_host, "169.254.169.254")).
 -define(IMDS_VERSION, erliam_config:g(imds_version, "latest")).
