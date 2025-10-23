@@ -11,8 +11,10 @@
 
 -define(IMDS_HOST, erliam_config:g(imds_host, "169.254.169.254")).
 -define(IMDS_VERSION, erliam_config:g(imds_version, "latest")).
--define(IMDS_TIMEOUT, 30000).
+-define(IMDS_TIMEOUT, erliam_config:g(imds_timeout, 30000)).
 -define(IMDS_RETRIES, 3).
+-define(IMDS_TOKEN_TTL, erliam_config:g(imds_token_ttl, 6 * 60 * 60)). % 6 hours default
+-define(IMDS_USE_V2, erliam_config:g(imds_use_v2, true)). % Use IMDSv2 by default
 
 %%%% API
 
@@ -44,12 +46,41 @@ get_session_token() ->
             Error
     end.
 
+-spec get_imdsv2_token() -> {ok, string()} | {error, term()}.
+get_imdsv2_token() ->
+    %% Get config values at runtime so they can be overridden in tests
+    Timeout = erliam_config:g(imds_timeout, 30000),
+    Host = erliam_config:g(imds_host, "169.254.169.254"),
+    Url = uri_string:normalize(["http://", Host, "/latest/api/token"]),
+    TTLString = integer_to_list(?IMDS_TOKEN_TTL),
+    RequestHeaders = [{"X-aws-ec2-metadata-token-ttl-seconds", TTLString}],
+    case httpc:request(put,
+                       {Url, RequestHeaders, "", ""},
+                       [{timeout, Timeout}, {connect_timeout, Timeout}],
+                       [{body_format, binary}],
+                       erliam:httpc_profile())
+    of
+        {ok, {{_, 200, _}, _, Body}} ->
+            case unicode:characters_to_list(Body) of
+                {error, _, _} ->
+                    {error, invalid_token_unicode};
+                {incomplete, _, _} ->
+                    {error, invalid_token_unicode};
+                Token ->
+                    {ok, Token}
+            end;
+        {ok, {{_, Code, Status}, _, _}} ->
+            {error, {bad_token_response, {Code, Status}}};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 %% Make a GET request to the given URL, expecting (accepting) the given mime types, and
 %% with the given request timeout in milliseconds.
 -spec imds_response(string(), [string()], pos_integer()) ->
                        {ok, term()} | {error, term()}.
 imds_response(Url, MimeTypes, Timeout) ->
-    RequestHeaders = [{"Accept", string:join(MimeTypes, ", ")}],
+    RequestHeaders = build_request_headers(MimeTypes),
     case httpc:request(get,
                        {Url, RequestHeaders},
                        [{timeout, Timeout}],
@@ -87,6 +118,26 @@ imds_response(Url, MimeTypes, Timeout, Retries) ->
                     Retries).
 
 %%%% INTERNAL FUNCTIONS
+
+%% Build request headers for IMDS requests, including IMDSv2 token if enabled.
+-spec build_request_headers([string()]) -> [{string(), string()}].
+build_request_headers(MimeTypes) ->
+    AcceptHeader = {"Accept", string:join(MimeTypes, ", ")},
+    case ?IMDS_USE_V2 of
+        true ->
+            case get_imdsv2_token() of
+                {ok, Token} ->
+                    [AcceptHeader, {"X-aws-ec2-metadata-token", Token}];
+                {error, Reason} ->
+                    %% Log warning but fall back to IMDSv1
+                    error_logger:warning_msg("Failed to obtain IMDSv2 token: ~p, "
+                                             "falling back to IMDSv1~n",
+                                             [Reason]),
+                    [AcceptHeader]
+            end;
+        false ->
+            [AcceptHeader]
+    end.
 
 %% Call the given Transform function with the result of a successful call to
 %% imds_response/4, or return the error which resulted from that call.
@@ -204,5 +255,100 @@ metadata_response_to_proplist_test() ->
     [?assertEqual(erliam_util:getkey(Key, Expected), erliam_util:getkey(Key, Result))
      || Key <- [expiration, access_key_id, secret_access_key, token]],
     ok.
+
+%% Test that build_request_headers returns only Accept header when IMDSv2 is disabled
+build_request_headers_v1_test() ->
+    %% Temporarily disable IMDSv2 for this test
+    OldValue = application:get_env(erliam, imds_use_v2, true),
+    application:set_env(erliam, imds_use_v2, false),
+    try
+        MimeTypes = ["text/plain", "application/json"],
+        Headers = build_request_headers(MimeTypes),
+        %% Should only contain Accept header
+        ?assertEqual(1, length(Headers)),
+        ?assertEqual({"Accept", "text/plain, application/json"}, hd(Headers))
+    after
+        application:set_env(erliam, imds_use_v2, OldValue)
+    end.
+
+%% Test that build_request_headers falls back to IMDSv1 when token request fails
+build_request_headers_v2_fallback_test() ->
+    with_imdsv2_enabled(fun() ->
+                           mock_imdsv2_token_failure(),
+                           try
+                               Headers = build_request_headers(["text/plain"]),
+                               ?assertEqual([{"Accept", "text/plain"}], Headers)
+                           after
+                               meck:unload(httpc)
+                           end
+                        end).
+
+%% Test that build_request_headers includes token header when IMDSv2 succeeds
+build_request_headers_v2_success_test() ->
+    with_imdsv2_enabled(fun() ->
+                           mock_imdsv2_token_success("test-token-12345"),
+                           try
+                               Headers = build_request_headers(["text/plain"]),
+                               ?assertEqual([{"Accept", "text/plain"},
+                                             {"X-aws-ec2-metadata-token", "test-token-12345"}],
+                                            Headers)
+                           after
+                               meck:unload(httpc)
+                           end
+                        end).
+
+%% Helper function to run a test with IMDSv2 enabled
+with_imdsv2_enabled(Fun) ->
+    OldValue = application:get_env(erliam, imds_use_v2, true),
+    application:set_env(erliam, imds_use_v2, true),
+    try
+        Fun()
+    after
+        application:set_env(erliam, imds_use_v2, OldValue)
+    end.
+
+%% Helper function to mock IMDSv2 token retrieval failure
+mock_imdsv2_token_failure() ->
+    meck:new(httpc, [passthrough, unstick]),
+    meck:expect(httpc,
+                request,
+                fun(put, {_Url, _Headers, _, _}, _HTTPOptions, _Options, _Profile) ->
+                   {error,
+                    {failed_connect,
+                     [{to_address, {"169.254.169.254", 80}}, {inet, [inet], econnrefused}]}}
+                end).
+
+%% Helper function to mock successful IMDSv2 token retrieval
+mock_imdsv2_token_success(Token) ->
+    meck:new(httpc, [passthrough, unstick]),
+    meck:expect(httpc,
+                request,
+                fun(put, {_Url, _Headers, _, _}, _HTTPOptions, _Options, _Profile) ->
+                   {ok, {{ignore, 200, ignore}, [], list_to_binary(Token)}}
+                end).
+
+%% Test that imds_url generates correct URLs
+imds_url_test() ->
+    Expected = "http://169.254.169.254/latest/meta-data/instance-id",
+    ?assertEqual(Expected, imds_url("instance-id")).
+
+%% Test that token response parsing handles invalid JSON
+get_code_invalid_json_test() ->
+    %% jiffy will throw an error for invalid JSON
+    %% Our get_code function should catch this and return an error
+    Result =
+        try get_code(<<"not json">>) of
+            Val ->
+                Val
+        catch
+            _:_ ->
+                {error, invalid_token_json}
+        end,
+    ?assertMatch({error, _}, Result).
+
+%% Test that token response parsing handles non-Success codes
+get_code_failure_test() ->
+    Body = <<"{\"Code\":\"Failure\"}">>,
+    ?assertEqual({error, failed_token_response}, get_code(Body)).
 
 -endif.
