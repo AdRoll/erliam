@@ -16,6 +16,20 @@ If not using instance metadata, set `aws_access_key` and `aws_secret_key` in `er
 application environment to your long-term credentials; these will be used to obtain a
 session token periodically.
 
+## IMDSv2 Support
+
+This library supports **AWS Instance Metadata Service Version 2 (IMDSv2)** by default, which
+provides enhanced security against SSRF attacks. IMDSv2 uses session-oriented requests with
+a token that must be obtained before accessing metadata.
+
+### Configuration
+
+- `imds_use_v2` (default: `true`) - Enable IMDSv2 support. If token retrieval fails, the
+  library will automatically fall back to IMDSv1.
+- `imds_token_ttl` (default: `21600` seconds / 6 hours) - The TTL for IMDSv2 session tokens.
+- `imds_host` (default: `"169.254.169.254"`) - The IMDS host address.
+- `imds_version` (default: `"latest"`) - The IMDS API version.
+
 ## example
 
 ### Fetch an object from S3

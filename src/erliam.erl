@@ -15,7 +15,8 @@
 
 -export_type([iso_datetime/0]).
 
--export([httpc_profile/0, get_session_token/0, credentials/0, invalidate/0]).
+-export([httpc_profile/0, get_session_token/0, credentials/0, invalidate/0,
+         get_imdsv2_token/0]).
 
 %% Return the current cached credentials (crash if none are cached or credential refresher
 %% server isn't running).
@@ -41,3 +42,6 @@ httpc_profile() ->
 %% force cached credentials to be invalidated and refreshed.
 invalidate() ->
     erliam_srv:invalidate().
+
+get_imdsv2_token() ->
+    imds:get_imdsv2_token().
